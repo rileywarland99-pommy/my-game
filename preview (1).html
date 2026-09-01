@@ -1,0 +1,2854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chairman & City</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+<style>
+  :root{
+    --bg:#0A0D13;
+    --panel:#121826;
+    --panel2:#1A2233;
+    --panel3:#232D42;
+    --accent:#FF7A29;
+    --accent-light:#FFA35C;
+    --accent2:#3DA5D9;
+    --accent-rgb:255,122,41;
+    --accent-ink:#1A0F06;
+    --text:#EDEFF4;
+    --text-dim:#8C94A6;
+    --good:#3DBE6C;
+    --bad:#E5484D;
+    --divider:rgba(237,239,244,0.09);
+    --gold:#E8C158;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    height:100%;}
+  body{background:
+      radial-gradient(1100px 550px at 12% -8%, rgba(var(--accent-rgb),0.16), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(var(--accent-rgb),0.07), transparent 55%),
+      var(--bg);
+    background-attachment:fixed;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  h1,h2,h3,h4{margin:0;font-weight:800;letter-spacing:-0.01em;}
+  button{font-family:inherit;cursor:pointer;border:none;background:var(--accent);
+    color:var(--accent-ink);font-weight:700;padding:10px 16px;font-size:13px;border-radius:5px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.35);
+    transition:transform .08s ease, background .15s ease, box-shadow .15s ease;}
+  button:hover{background:var(--accent-light);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.18);}
+  button:active{transform:scale(0.97);}
+  button:disabled{background:#2b3244;color:#5c6577;cursor:not-allowed;box-shadow:none;}
+  button.ghost{background:transparent;border:1px solid var(--divider);color:var(--text);}
+  button.ghost:hover{background:var(--panel3);box-shadow:none;}
+  button.danger-btn{background:var(--bad);color:#fff;}
+  button.small{padding:6px 10px;font-size:11.5px;}
+  button.chip{background:var(--panel3);color:var(--text);font-weight:600;border-radius:20px;padding:6px 14px;box-shadow:none;}
+  button.chip.on{background:var(--accent);color:var(--accent-ink);}
+  input,select,textarea{font-family:inherit;background:var(--panel2);border:1px solid var(--divider);
+    color:var(--text);padding:9px 10px;font-size:13px;border-radius:5px;transition:border-color .15s ease;}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.15);}
+  input[type=color]{padding:2px;height:38px;width:56px;cursor:pointer;}
+  .swatch-preset{width:28px;height:28px;border-radius:7px;cursor:pointer;border:2px solid var(--divider);flex-shrink:0;transition:transform .1s ease,border-color .1s ease;}
+  .swatch-preset:hover{transform:translateY(-2px);}
+  .swatch-preset.sel{border-color:var(--text);box-shadow:0 0 0 2px rgba(var(--accent-rgb),0.35);}
+  label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-dim);display:block;margin-bottom:5px;font-weight:700;}
+  .field{margin-bottom:14px;}
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .row > .field{flex:1;min-width:150px;}
+
+  /* ---------- shell / onboarding ---------- */
+  .onboard-wrap{max-width:980px;margin:0 auto;padding:36px 20px 70px;}
+  .hero{margin-bottom:24px;}
+  .hero .kicker{color:var(--accent);font-weight:800;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;}
+  .hero h1{font-size:38px;background:linear-gradient(90deg,var(--text),var(--accent-light));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero p{color:var(--text-dim);max-width:600px;margin-top:10px;font-size:14.5px;line-height:1.55;}
+  .step-indicator{display:flex;gap:6px;margin-bottom:26px;}
+  .step-indicator span{flex:1;height:4px;background:var(--panel3);border-radius:2px;transition:background .2s ease;}
+  .step-indicator span.done{background:var(--accent);}
+  .panel{background:var(--panel);border:1px solid var(--divider);border-left:4px solid var(--accent);
+    padding:24px 26px;margin-bottom:18px;border-radius:10px;box-shadow:0 14px 34px -18px rgba(0,0,0,0.65);}
+  .panel h3{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent-light);margin-bottom:18px;}
+  .swatch-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+  .kit-preview{width:64px;height:78px;position:relative;flex-shrink:0;}
+  .kit-preview .body{position:absolute;inset:0;clip-path:polygon(20% 0,80% 0,100% 25%,85% 30%,85% 100%,15% 100%,15% 30%,0 25%);}
+  .kit-preview .pattern{position:absolute;inset:0;clip-path:polygon(20% 0,80% 0,100% 25%,85% 30%,85% 100%,15% 100%,15% 30%,0 25%);}
+  .badge-preview{width:74px;height:74px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;}
+  .choice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .choice-card{background:var(--panel2);border:1px solid var(--divider);padding:12px;cursor:pointer;border-radius:7px;text-align:center;transition:all .12s ease;}
+  .choice-card:hover{border-color:var(--accent2);transform:translateY(-1px);}
+  .choice-card.sel{border-color:var(--accent);background:var(--panel3);box-shadow:0 0 0 1px var(--accent);}
+  .choice-card h4{font-size:12.5px;text-transform:none;color:var(--text);}
+  .choice-card p{font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.35;}
+  .mode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;}
+  .mode-card{background:var(--panel2);border:1px solid var(--divider);padding:15px;cursor:pointer;border-radius:8px;transition:all .12s ease;}
+  .mode-card:hover{border-color:var(--accent2);transform:translateY(-1px);}
+  .mode-card.sel{border-color:var(--accent);background:var(--panel3);box-shadow:0 0 0 1px var(--accent);}
+  .mode-card h4{color:var(--accent-light);font-size:14px;text-transform:uppercase;letter-spacing:0.03em;}
+  .mode-card p{font-size:12px;color:var(--text-dim);margin-top:6px;line-height:1.4;}
+  .custom-toggle{margin-top:14px;font-size:12.5px;color:var(--text-dim);display:flex;align-items:center;gap:8px;}
+  .slider-field{margin-bottom:12px;}
+  .slider-field .val{color:var(--accent-light);font-weight:700;float:right;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .avatar-svg{border-radius:50%;background:var(--panel2);}
+
+  /* ---------- map screens ---------- */
+  .map-shell{max-width:1180px;margin:0 auto;padding:30px 20px 70px;}
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);margin-bottom:16px;}
+  .breadcrumb b{color:var(--text);cursor:pointer;}
+  .breadcrumb b:hover{color:var(--accent-light);}
+  .breadcrumb .sep{color:var(--panel3);}
+  .map-wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
+  .map-col{position:relative;flex:1.5;min-width:340px;}
+  .locator-inset{position:absolute;bottom:10px;right:10px;width:110px;height:80px;border-radius:6px;
+    overflow:hidden;border:2px solid rgba(255,255,255,0.5);box-shadow:0 6px 18px rgba(0,0,0,0.5);z-index:400;pointer-events:none;}
+  .loc-section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);
+    margin:14px 0 6px;font-weight:700;}
+  .loc-section-label:first-child{margin-top:0;}
+  #leaflet-map{width:100%;height:460px;border-radius:10px;border:1px solid var(--divider);background:#0e2233;box-shadow:0 14px 34px -18px rgba(0,0,0,0.7);}
+  .side-panel{flex:1;min-width:290px;max-height:460px;overflow:auto;display:flex;flex-direction:column;gap:8px;}
+  .map-hint{font-size:11.5px;color:var(--text-dim);background:var(--panel2);border:1px dashed var(--divider);padding:10px 12px;border-radius:7px;margin-bottom:12px;line-height:1.5;}
+  .map-hint b{color:var(--accent-light);}
+  .loc-chip{background:var(--panel2);border:1px solid var(--divider);padding:11px 13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:7px;transition:all .12s ease;}
+  .loc-chip:hover{border-color:var(--accent2);transform:translateX(2px);}
+  .loc-chip.active{border-color:var(--accent);background:var(--panel3);}
+  .loc-chip .name{font-weight:700;font-size:13.5px;}
+  .loc-chip .sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .loc-chip .chip-actions{display:flex;align-items:center;gap:8px;}
+  .loc-chip .compare-btn{font-size:9.5px;text-transform:uppercase;letter-spacing:0.04em;padding:5px 9px;border-radius:12px;background:var(--panel3);color:var(--text-dim);font-weight:700;box-shadow:none;}
+  .loc-chip .compare-btn:hover{background:var(--panel3);box-shadow:0 0 0 2px rgba(var(--accent-rgb),0.2);}
+  .loc-chip .compare-btn.on{background:var(--accent);color:var(--accent-ink);}
+  .loc-chip .go-arrow{color:var(--text-dim);font-size:16px;}
+  .leaflet-popup-content-wrapper{background:var(--panel2);color:var(--text);border-radius:6px;}
+  .leaflet-popup-tip{background:var(--panel2);}
+  .compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px;}
+  .stat-line{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--divider);}
+  .stat-line b{color:var(--accent-light);}
+  .site-card{background:var(--panel2);border:1px solid var(--divider);padding:14px;border-radius:8px;margin-bottom:10px;cursor:pointer;transition:all .12s ease;}
+  .site-card:hover{border-color:var(--accent2);transform:translateY(-1px);}
+  .site-card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .site-card.custom{border-left:3px solid var(--gold);}
+  .site-card h4{font-size:13.5px;color:var(--accent-light);}
+  .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .tag{font-size:10px;background:var(--panel3);color:var(--text-dim);padding:3px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:0.04em;}
+
+  /* ---------- dashboard shell ---------- */
+  .masthead{display:flex;align-items:center;justify-content:space-between;padding:10px 22px;
+    background:linear-gradient(180deg,#151C2C,#101623);border-bottom:1px solid var(--divider);position:sticky;top:0;z-index:20;
+    box-shadow:0 2px 14px rgba(0,0,0,0.35);}
+  .masthead-left{display:flex;align-items:center;gap:14px;}
+  .mh-crest{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;
+    border:2px solid var(--gold);flex-shrink:0;box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.14);}
+  .mh-name{font-size:15px;font-weight:800;line-height:1.1;}
+  .mh-sub{font-size:11px;color:var(--text-dim);}
+  .masthead-stats{display:flex;gap:22px;}
+  .mh-stat{text-align:right;}
+  .mh-stat .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);}
+  .mh-stat .v{font-size:14px;font-weight:800;color:var(--text);}
+  .continue-btn{background:var(--accent);padding:11px 22px;font-size:13px;font-weight:800;border-radius:6px;display:flex;align-items:center;gap:8px;}
+  .layout{display:flex;flex:1;min-height:0;}
+  .rail{width:78px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--divider);
+    display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px;}
+  .rail-item{width:60px;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;
+    border-radius:8px;cursor:pointer;color:var(--text-dim);transition:all .12s ease;}
+  .rail-item svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+  .rail-item span{font-size:9px;text-transform:uppercase;letter-spacing:0.03em;text-align:center;line-height:1.1;}
+  .rail-item:hover{background:var(--panel2);color:var(--text);}
+  .rail-item.active{background:var(--panel3);color:var(--accent-light);box-shadow:inset 3px 0 0 var(--accent);}
+  .rail-item.active svg{stroke:var(--accent-light);}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:auto;}
+  .content{padding:24px 28px;flex:1;max-width:1180px;width:100%;margin:0 auto;}
+  .card{background:var(--panel);border:1px solid var(--divider);border-left:4px solid var(--accent2);
+    padding:19px 21px;margin-bottom:18px;border-radius:8px;box-shadow:0 10px 26px -16px rgba(0,0,0,0.6);}
+  .card.accent-gold{border-left-color:var(--gold);}
+  .card.accent-warn{border-left-color:var(--bad);}
+  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent2);margin-bottom:15px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media (max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;color:var(--text-dim);font-weight:700;padding:7px 8px;border-bottom:1px solid var(--divider);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;}
+  td{padding:7px 8px;border-bottom:1px solid var(--divider);}
+  tr.player-row td{color:var(--accent-light);font-weight:700;background:rgba(var(--accent-rgb),0.08);}
+  .pill{display:inline-block;padding:2px 9px;font-size:10px;font-weight:700;letter-spacing:0.04em;border-radius:10px;}
+  .pill.good{background:var(--good);color:#0b1f10;}
+  .pill.bad{background:var(--bad);color:#fff;}
+  .pill.neutral{background:var(--panel3);color:var(--text-dim);}
+  .news-item{padding:9px 0;border-bottom:1px solid var(--divider);font-size:12.5px;line-height:1.45;}
+  .news-item .wk{color:var(--accent);font-weight:700;margin-right:6px;}
+  .news-item.event{color:var(--gold);}
+  .stand-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px;}
+  .stand-card{background:var(--panel2);border:1px solid var(--divider);padding:13px;border-radius:6px;}
+  .stand-card h4{font-size:12px;color:var(--accent-light);text-transform:uppercase;}
+  .stand-card .tier{font-size:11px;color:var(--text-dim);margin:5px 0 10px;}
+  .tile-palette{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .tile-btn{background:var(--panel2);border:1px solid var(--divider);padding:9px 11px;font-size:11px;color:var(--text);text-align:left;border-radius:5px;}
+  .tile-btn.sel{border-color:var(--accent);background:var(--panel3);}
+  .tile-swatch{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:middle;border-radius:2px;}
+  canvas{display:block;image-rendering:crisp-edges;border-radius:6px;overflow:hidden;}
+  .flex-between{display:flex;justify-content:space-between;align-items:center;}
+  .muted{color:var(--text-dim);font-size:12px;}
+  .finance-line{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--divider);}
+  .finance-line.total{border-top:2px solid var(--accent);margin-top:4px;padding-top:8px;font-weight:700;}
+  .rival-card{background:var(--panel2);border-left:4px solid var(--bad);padding:13px 15px;margin-bottom:10px;border-radius:5px;}
+  .rival-meter{height:6px;background:var(--panel3);margin-top:7px;position:relative;border-radius:3px;overflow:hidden;}
+  .rival-meter .fill{height:100%;background:var(--bad);}
+  .top-actions{display:flex;gap:10px;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:4px;}
+
+  /* chairman profile */
+  .chair-avatar-wrap{display:flex;gap:18px;align-items:center;}
+  .avatar-svg{border-radius:50%;box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.18);}
+  .trait-bar{margin-bottom:10px;}
+  .trait-bar .lbl2{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+  .trait-track{height:7px;background:var(--panel3);border-radius:4px;overflow:hidden;}
+  .trait-track .fill{height:100%;background:var(--accent2);}
+
+  /* event modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,12,0.78);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal-box{background:var(--panel);border:1px solid var(--divider);border-top:5px solid var(--gold);border-radius:8px;max-width:520px;width:100%;padding:28px;}
+  .modal-box .kicker{color:var(--gold);font-size:11px;text-transform:uppercase;letter-spacing:0.12em;font-weight:800;margin-bottom:8px;}
+  .modal-box h2{font-size:20px;margin-bottom:12px;}
+  .modal-box p{font-size:13.5px;line-height:1.55;color:var(--text-dim);margin-bottom:18px;}
+  .modal-choices{display:flex;flex-direction:column;gap:10px;}
+  .modal-choices button{width:100%;text-align:left;background:var(--panel2);color:var(--text);border:1px solid var(--divider);padding:12px 14px;}
+  .modal-choices button:hover{border-color:var(--accent);background:var(--panel3);}
+  .modal-choices button b{color:var(--accent-light);display:block;font-size:13px;margin-bottom:2px;}
+  .modal-choices button span{font-size:11.5px;color:var(--text-dim);}
+
+  /* ---------------- Accessibility ---------------- */
+  .skip-link{position:absolute;left:-9999px;top:0;background:var(--accent);color:var(--accent-ink);
+    padding:10px 16px;z-index:1000;border-radius:0 0 6px 0;font-weight:700;font-size:13px;}
+  .skip-link:focus{left:0;}
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  [tabindex]:focus-visible, .loc-chip:focus-visible, .choice-card:focus-visible,
+  .mode-card:focus-visible, .site-card:focus-visible, .rail-item:focus-visible{
+    outline:3px solid var(--accent-light); outline-offset:2px;
+  }
+  .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+  /* ---------------- Music toggle ---------------- */
+  .music-toggle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:var(--panel3);color:var(--text-dim);padding:0;box-shadow:none;flex-shrink:0;}
+  .music-toggle.on{background:var(--accent);color:var(--accent-ink);}
+  .music-toggle svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;}
+
+  /* ---------------- Social tab ---------------- */
+  .social-compose{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;}
+  .social-compose textarea{flex:1;min-height:64px;resize:vertical;}
+  .social-suggest-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .social-suggest-row button{background:var(--panel3);color:var(--text);font-weight:600;font-size:11.5px;padding:6px 12px;box-shadow:none;}
+  .social-suggest-row button:hover{background:var(--panel2);}
+  .social-post{background:var(--panel2);border:1px solid var(--divider);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+  .social-post .meta{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:6px;}
+  .social-post .body{font-size:13.5px;line-height:1.5;}
+  .social-post .engagement{display:flex;gap:16px;margin-top:10px;font-size:11.5px;color:var(--text-dim);}
+  .social-stat-row{display:flex;gap:18px;margin-bottom:18px;flex-wrap:wrap;}
+  .social-stat{background:var(--panel2);border:1px solid var(--divider);border-radius:8px;padding:12px 18px;text-align:center;min-width:110px;}
+  .social-stat .v{font-size:20px;font-weight:800;color:var(--accent-light);}
+  .social-stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);margin-top:2px;}
+  .social-reply{background:var(--panel3);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--text-dim);}
+  .social-reply b{color:var(--text);}
+
+  /* ---------------- Mobile responsive ---------------- */
+  @media (max-width: 860px){
+    .content{padding:16px 14px;}
+    .onboard-wrap{padding:16px 12px;}
+    .hero h1{font-size:26px;}
+    .panel, .card{padding:16px 15px;}
+    .row{flex-direction:column;}
+    .row .field{width:100%;}
+    .map-wrap{flex-direction:column;}
+    .map-col{min-width:0;width:100%;}
+    #leaflet-map{height:320px;}
+    .side-panel{max-height:none;width:100%;min-width:0;}
+    .locator-inset{width:80px;height:58px;}
+    .masthead{flex-wrap:wrap;gap:10px;padding:10px 14px;}
+    .masthead-stats{gap:12px;order:3;width:100%;justify-content:space-between;}
+    .mh-stat .v{font-size:12.5px;}
+    .continue-btn{padding:9px 14px;font-size:12px;}
+    .layout{flex-direction:column;}
+    .rail{width:100%;flex-direction:row;overflow-x:auto;padding:6px 8px;gap:2px;
+      position:sticky;bottom:0;top:auto;order:2;border-right:none;border-top:1px solid var(--divider);
+      -webkit-overflow-scrolling:touch;}
+    .rail-item{width:auto;min-width:56px;flex-shrink:0;padding:8px 6px;}
+    .rail-item.active{box-shadow:inset 0 3px 0 var(--accent);}
+    .choice-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
+    .mode-grid{grid-template-columns:1fr;}
+    .chair-avatar-wrap{flex-direction:column;align-items:center;text-align:center;}
+    .compare-grid{grid-template-columns:1fr;}
+    table{font-size:12px;}
+    .social-compose{flex-direction:column;}
+  }
+  @media (max-width: 480px){
+    .step-indicator{margin-bottom:16px;}
+    .hero h1{font-size:22px;}
+    button{padding:9px 13px;font-size:12.5px;}
+    .mh-name{font-size:13px;}
+    .mh-sub{font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================================
+   CHAIRMAN & CITY v2
+   Real England & Scotland location hierarchy (country > county > town > site),
+   satellite site selection, deep club + chairman customisation, FM-style UI,
+   simplified football/finance/city-building simulation, and random events.
+   All clubs (player's and rivals) are fictional; real towns/cities are used
+   only as a geographic backdrop.
+   ========================================================================= */
+
+const STORAGE_KEY = 'chairman-city-save-v2';
+let leafletMapInstance = null;
+
+/* ---------------- Geographic data ---------------- */
+
+const COUNTIES_CORE = [
+  {id:'kent', name:'Kent', country:'England', center:[51.25,0.75], zoom:9},
+  {id:'essex', name:'Essex', country:'England', center:[51.78,0.55], zoom:9},
+  {id:'london', name:'Greater London', country:'England', center:[51.50,-0.12], zoom:10, hasBoroughs:true},
+  {id:'gtrmanchester', name:'Greater Manchester', country:'England', center:[53.48,-2.25], zoom:10},
+  {id:'westyorks', name:'West Yorkshire', country:'England', center:[53.74,-1.65], zoom:9},
+  {id:'westmids', name:'West Midlands', country:'England', center:[52.50,-1.95], zoom:9},
+  {id:'merseyside', name:'Merseyside', country:'England', center:[53.45,-2.95], zoom:10},
+  {id:'tyneandwear', name:'Tyne & Wear', country:'England', center:[54.94,-1.55], zoom:10},
+  {id:'bristolsom', name:'Bristol & Somerset', country:'England', center:[51.40,-2.65], zoom:9},
+  {id:'centralscot', name:'Central Scotland', country:'Scotland', center:[55.95,-3.9], zoom:8},
+  {id:'northeastscot', name:'North East Scotland', country:'Scotland', center:[56.7,-2.8], zoom:8}
+];
+const COUNTIES_EXTRA = [
+  {id:'bedfordshire', name:'Bedfordshire', country:'England', center:[52.05,-0.47], zoom:9},
+  {id:'berkshire', name:'Berkshire', country:'England', center:[51.45,-0.97], zoom:9},
+  {id:'buckinghamshire', name:'Buckinghamshire', country:'England', center:[51.81,-0.81], zoom:9},
+  {id:'cambridgeshire', name:'Cambridgeshire', country:'England', center:[52.35,0.02], zoom:9},
+  {id:'cheshire', name:'Cheshire', country:'England', center:[53.2,-2.55], zoom:9},
+  {id:'cornwall', name:'Cornwall', country:'England', center:[50.42,-4.75], zoom:9},
+  {id:'countydurham', name:'County Durham', country:'England', center:[54.68,-1.65], zoom:9},
+  {id:'cumbria', name:'Cumbria', country:'England', center:[54.55,-3.05], zoom:8},
+  {id:'derbyshire', name:'Derbyshire', country:'England', center:[53.1,-1.55], zoom:9},
+  {id:'devon', name:'Devon', country:'England', center:[50.75,-3.65], zoom:8},
+  {id:'dorset', name:'Dorset', country:'England', center:[50.8,-2.35], zoom:9},
+  {id:'eastridingyorks', name:'East Riding of Yorkshire', country:'England', center:[53.85,-0.45], zoom:9},
+  {id:'eastsussex', name:'East Sussex', country:'England', center:[50.9,0.1], zoom:9},
+  {id:'gloucestershire', name:'Gloucestershire', country:'England', center:[51.86,-2.15], zoom:9},
+  {id:'hampshire', name:'Hampshire', country:'England', center:[51.05,-1.3], zoom:9},
+  {id:'herefordshire', name:'Herefordshire', country:'England', center:[52.1,-2.75], zoom:9},
+  {id:'hertfordshire', name:'Hertfordshire', country:'England', center:[51.8,-0.25], zoom:9},
+  {id:'isleofwight', name:'Isle of Wight', country:'England', center:[50.68,-1.3], zoom:10},
+  {id:'lancashire', name:'Lancashire', country:'England', center:[53.85,-2.65], zoom:9},
+  {id:'leicestershire', name:'Leicestershire', country:'England', center:[52.63,-1.2], zoom:9},
+  {id:'lincolnshire', name:'Lincolnshire', country:'England', center:[53.1,-0.3], zoom:8},
+  {id:'norfolk', name:'Norfolk', country:'England', center:[52.7,0.9], zoom:9},
+  {id:'northyorkshire', name:'North Yorkshire', country:'England', center:[54.2,-1.55], zoom:8},
+  {id:'northamptonshire', name:'Northamptonshire', country:'England', center:[52.3,-0.85], zoom:9},
+  {id:'northumberland', name:'Northumberland', country:'England', center:[55.25,-2.05], zoom:8},
+  {id:'nottinghamshire', name:'Nottinghamshire', country:'England', center:[53.1,-1.05], zoom:9},
+  {id:'oxfordshire', name:'Oxfordshire', country:'England', center:[51.85,-1.25], zoom:9},
+  {id:'rutland', name:'Rutland', country:'England', center:[52.65,-0.63], zoom:11},
+  {id:'shropshire', name:'Shropshire', country:'England', center:[52.65,-2.75], zoom:9},
+  {id:'southyorkshire', name:'South Yorkshire', country:'England', center:[53.45,-1.35], zoom:9},
+  {id:'staffordshire', name:'Staffordshire', country:'England', center:[52.85,-2.05], zoom:9},
+  {id:'suffolk', name:'Suffolk', country:'England', center:[52.15,1.05], zoom:9},
+  {id:'surrey', name:'Surrey', country:'England', center:[51.25,-0.45], zoom:9},
+  {id:'warwickshire', name:'Warwickshire', country:'England', center:[52.3,-1.55], zoom:9},
+  {id:'westsussex', name:'West Sussex', country:'England', center:[50.95,-0.45], zoom:9},
+  {id:'wiltshire', name:'Wiltshire', country:'England', center:[51.3,-1.95], zoom:9},
+  {id:'worcestershire', name:'Worcestershire', country:'England', center:[52.25,-2.15], zoom:9},
+  {id:'highland', name:'Highland', country:'Scotland', center:[57.45,-4.5], zoom:7},
+  {id:'argyllbute', name:'Argyll & Bute', country:'Scotland', center:[56.2,-5.3], zoom:8},
+  {id:'ayrshire', name:'Ayrshire', country:'Scotland', center:[55.5,-4.55], zoom:9},
+  {id:'dumfriesgalloway', name:'Dumfries & Galloway', country:'Scotland', center:[55.05,-3.85], zoom:8},
+  {id:'scottishborders', name:'Scottish Borders', country:'Scotland', center:[55.55,-2.75], zoom:9},
+  {id:'fife', name:'Fife', country:'Scotland', center:[56.2,-3.15], zoom:9},
+  {id:'angus', name:'Angus', country:'Scotland', center:[56.65,-2.85], zoom:9},
+  {id:'moray', name:'Moray', country:'Scotland', center:[57.55,-3.3], zoom:9},
+  {id:'lanarkshire', name:'Lanarkshire', country:'Scotland', center:[55.68,-3.78], zoom:9},
+  {id:'renfrewshire', name:'Renfrewshire', country:'Scotland', center:[55.85,-4.5], zoom:10},
+  {id:'orkneyshetland', name:'Orkney & Shetland', country:'Scotland', center:[59.5,-2.9], zoom:7},
+  {id:'westernisles', name:'Western Isles', country:'Scotland', center:[57.9,-6.7], zoom:7}
+];
+const COUNTIES = [...COUNTIES_CORE, ...COUNTIES_EXTRA].sort((a,b)=> a.country===b.country ? a.name.localeCompare(b.name) : (a.country==='England'?-1:1));
+const LONDON_BOROUGHS = [
+  {id:'camden', name:'Camden', center:[51.529,-0.1255]},
+  {id:'greenwichb', name:'Greenwich', center:[51.4826,-0.0077]},
+  {id:'hackney', name:'Hackney', center:[51.545,-0.0553]},
+  {id:'hammfulham', name:'Hammersmith & Fulham', center:[51.4927,-0.2339]},
+  {id:'islington', name:'Islington', center:[51.5416,-0.1022]},
+  {id:'kenschel', name:'Kensington & Chelsea', center:[51.4991,-0.1938]},
+  {id:'lambeth', name:'Lambeth', center:[51.4607,-0.1163]},
+  {id:'lewishamb', name:'Lewisham', center:[51.4452,-0.0209]},
+  {id:'southwark', name:'Southwark', center:[51.5035,-0.0804]},
+  {id:'towerhamlets', name:'Tower Hamlets', center:[51.515,-0.0172]},
+  {id:'wandsworth', name:'Wandsworth', center:[51.4571,-0.191]},
+  {id:'westminster', name:'Westminster', center:[51.4973,-0.1372]},
+  {id:'cityoflondon', name:'City of London', center:[51.5155,-0.0922]},
+  {id:'barkingdag', name:'Barking & Dagenham', center:[51.5541,0.1298]},
+  {id:'barnetb', name:'Barnet', center:[51.6252,-0.1517]},
+  {id:'bexley', name:'Bexley', center:[51.4416,0.1508]},
+  {id:'brent', name:'Brent', center:[51.5673,-0.2711]},
+  {id:'bromleyb', name:'Bromley', center:[51.4039,0.0198]},
+  {id:'croydonb', name:'Croydon', center:[51.3762,-0.0982]},
+  {id:'ealingb', name:'Ealing', center:[51.513,-0.3089]},
+  {id:'enfieldb', name:'Enfield', center:[51.6521,-0.0808]},
+  {id:'haringey', name:'Haringey', center:[51.6,-0.1119]},
+  {id:'harrow', name:'Harrow', center:[51.5898,-0.3346]},
+  {id:'havering', name:'Havering', center:[51.5779,0.1832]},
+  {id:'hillingdon', name:'Hillingdon', center:[51.5441,-0.476]},
+  {id:'hounslow', name:'Hounslow', center:[51.468,-0.36]},
+  {id:'kingstonb', name:'Kingston upon Thames', center:[51.4085,-0.3064]},
+  {id:'merton', name:'Merton', center:[51.4098,-0.1949]},
+  {id:'newham', name:'Newham', center:[51.5077,0.0469]},
+  {id:'redbridge', name:'Redbridge', center:[51.559,0.074]},
+  {id:'richmond', name:'Richmond upon Thames', center:[51.4613,-0.3037]},
+  {id:'suttonb', name:'Sutton', center:[51.3618,-0.1945]},
+  {id:'walthamforest', name:'Waltham Forest', center:[51.5908,-0.0134]}
+];
+const COUNTRY_VIEW = {center:[54.5,-3.2], zoom:6};
+
+function t(id,name,countyId,lat,lng,pop,interest){
+  return {id,name,countyId,lat,lng,pop,footballInterest:interest,
+    existingClubs: 1+Math.floor(seededRandom(id+'clubs')*3),
+    transport: TRANSPORT_DESCS[Math.floor(seededRandom(id+'transport')*TRANSPORT_DESCS.length)],
+    land: LAND_DESCS[Math.floor(seededRandom(id+'land')*LAND_DESCS.length)],
+    council: COUNCIL_DESCS[Math.floor(seededRandom(id+'council')*COUNCIL_DESCS.length)],
+    history: HISTORY_DESCS[Math.floor(seededRandom(id+'history')*HISTORY_DESCS.length)]
+  };
+}
+function tb(id,name,boroughId,lat,lng,pop,interest){
+  const town = t(id,name,'london',lat,lng,pop,interest);
+  town.boroughId = boroughId;
+  return town;
+}
+const TRANSPORT_DESCS = [
+  'Mainline rail station with direct links to nearby cities',
+  'Good bus network but limited rail capacity',
+  'Motorway junction close by, useful for away travel',
+  'Metro/light rail access within the town centre',
+  'Coastal town — good roads, more limited rail'
+];
+const LAND_DESCS = [
+  'Several brownfield sites available near the centre',
+  'Limited land, most plots command a high price',
+  'Plentiful greenfield sites on the outskirts',
+  'Former industrial land awaiting redevelopment',
+  'Mixed availability — competition from housing developers'
+];
+const COUNCIL_DESCS = [
+  'Actively courting investment and new sports facilities',
+  'Cautiously supportive, expects strong community benefit',
+  'Strict planning process, high design expectations',
+  'Neutral — standard planning process applies',
+  'Wary of large developments, protective of green space'
+];
+const HISTORY_DESCS = [
+  'A patchwork of Sunday League and works teams feeds a loyal grassroots scene',
+  'Home to a fierce historic rivalry between two long-established clubs',
+  'Produced several professional academy graduates over the decades',
+  'Football tradition here has faded since a former club folded',
+  'A growing new-town population with an appetite for a team to support'
+];
+function seededRandom(str){
+  let h=0; for(let i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))>>>0; }
+  return ((h%10000)/10000);
+}
+
+const TOWN_DATA = [
+  // Kent
+  t('maidstone','Maidstone','kent',51.2704,0.5227,113000,64),
+  t('canterbury','Canterbury','kent',51.2802,1.0789,55000,68),
+  t('chatham','Chatham','kent',51.3760,0.5236,71000,66),
+  t('medwaytowns','Medway Towns','kent',51.3860,0.5490,79000,63),
+  t('dover','Dover','kent',51.1279,1.3134,31000,60),
+  t('ashford','Ashford','kent',51.1465,0.8760,74000,58),
+  t('tunbridgewells','Tunbridge Wells','kent',51.1324,0.2634,58000,52),
+  t('dartford','Dartford','kent',51.4462,0.2166,98000,61),
+  t('gravesend','Gravesend','kent',51.4400,0.3700,58000,59),
+  t('sittingbourne','Sittingbourne','kent',51.3416,0.7307,50000,55),
+  t('folkestone','Folkestone','kent',51.0810,1.1670,46000,57),
+  t('margate','Margate','kent',51.3813,1.3862,61000,54),
+  // Essex
+  t('chelmsford','Chelmsford','essex',51.7356,0.4685,110000,60),
+  t('colchester','Colchester','essex',51.8959,0.8919,122000,63),
+  t('southend','Southend-on-Sea','essex',51.5459,0.7077,183000,70),
+  t('basildon','Basildon','essex',51.5761,0.4530,113000,62),
+  t('harlow','Harlow','essex',51.7717,0.1017,86000,58),
+  t('braintree','Braintree','essex',51.8779,0.5527,49000,52),
+  t('clacton','Clacton-on-Sea','essex',51.7896,1.1567,54000,50),
+  t('grays','Grays (Thurrock)','essex',51.4762,0.3244,40000,59),
+  t('brentwood','Brentwood','essex',51.6209,0.3057,49000,53),
+  t('loughton','Loughton','essex',51.6470,0.0550,32000,49),
+  // Greater London (borough > neighbourhood)
+  // camden
+  tb('camdentown','Camden Town','camden',51.539,-0.1426,25000,60),
+  tb('kentishtown','Kentish Town','camden',51.5495,-0.1406,20000,56),
+  // greenwichb
+  tb('greenwichtn','Greenwich','greenwichb',51.4826,-0.0077,30000,64),
+  tb('woolwich','Woolwich','greenwichb',51.49,0.0648,35000,60),
+  // hackney
+  tb('hackneycentral','Hackney Central','hackney',51.545,-0.0553,28000,58),
+  tb('dalston','Dalston','hackney',51.547,-0.0754,24000,56),
+  // hammfulham
+  tb('hammersmith','Hammersmith','hammfulham',51.4927,-0.2339,26000,60),
+  tb('fulham','Fulham','hammfulham',51.4801,-0.1958,30000,58),
+  // islington
+  tb('islingtontn','Islington','islington',51.5416,-0.1022,27000,58),
+  tb('highbury','Highbury','islington',51.5507,-0.0956,18000,56),
+  // kenschel
+  tb('kensington','Kensington','kenschel',51.4991,-0.1938,22000,54),
+  tb('chelsea','Chelsea','kenschel',51.4875,-0.1687,20000,58),
+  // lambeth
+  tb('brixton','Brixton','lambeth',51.4613,-0.1156,32000,60),
+  tb('streatham','Streatham','lambeth',51.4258,-0.129,28000,56),
+  // lewishamb
+  tb('lewishamtn','Lewisham','lewishamb',51.4452,-0.0209,30000,58),
+  tb('catford','Catford','lewishamb',51.4452,-0.0206,24000,54),
+  // southwark
+  tb('peckham','Peckham','southwark',51.474,-0.0689,32000,58),
+  tb('camberwell','Camberwell','southwark',51.4746,-0.09,28000,56),
+  // towerhamlets
+  tb('bow','Bow','towerhamlets',51.527,-0.0232,22000,56),
+  tb('whitechapel','Whitechapel','towerhamlets',51.5194,-0.062,20000,54),
+  // wandsworth
+  tb('wandsworthtn','Wandsworth','wandsworth',51.4571,-0.191,25000,56),
+  tb('battersea','Battersea','wandsworth',51.474,-0.165,30000,58),
+  // westminster
+  tb('soho','Soho','westminster',51.5136,-0.1365,8000,52),
+  tb('pimlico','Pimlico','westminster',51.4913,-0.1357,14000,50),
+  // cityoflondon
+  tb('thecity','The City','cityoflondon',51.5155,-0.0922,9000,48),
+  // barkingdag
+  tb('barking','Barking','barkingdag',51.539,0.0805,25000,54),
+  tb('dagenham','Dagenham','barkingdag',51.5423,0.1442,30000,52),
+  // barnetb
+  tb('finchley','Finchley','barnetb',51.599,-0.19,24000,50),
+  tb('edgware','Edgware','barnetb',51.614,-0.275,20000,48),
+  // bexley
+  tb('bexleyheath','Bexleyheath','bexley',51.457,0.15,22000,48),
+  tb('erith','Erith','bexley',51.48,0.178,15000,46),
+  // brent
+  tb('wembleyb','Wembley','brent',51.5528,-0.2963,30000,68),
+  tb('willesden','Willesden','brent',51.548,-0.244,26000,54),
+  // bromleyb
+  tb('bromleytn','Bromley','bromleyb',51.4039,0.0198,32000,52),
+  tb('orpington','Orpington','bromleyb',51.374,0.094,25000,48),
+  // croydonb
+  tb('croydontn','Croydon','croydonb',51.3762,-0.0982,40000,58),
+  tb('purley','Purley','croydonb',51.337,-0.115,15000,46),
+  // ealingb
+  tb('ealingtn','Ealing','ealingb',51.513,-0.3089,26000,56),
+  tb('acton','Acton','ealingb',51.5085,-0.2678,24000,54),
+  // enfieldb
+  tb('enfieldtn','Enfield Town','enfieldb',51.6521,-0.0808,24000,54),
+  tb('edmonton','Edmonton','enfieldb',51.614,-0.07,26000,52),
+  // haringey
+  tb('woodgreen','Wood Green','haringey',51.597,-0.109,20000,52),
+  tb('tottenham','Tottenham','haringey',51.59,-0.068,28000,60),
+  // harrow
+  tb('harrowtn','Harrow','harrow',51.5898,-0.3346,26000,52),
+  tb('wealdstone','Wealdstone','harrow',51.594,-0.335,15000,48),
+  // havering
+  tb('romfordb','Romford','havering',51.5779,0.1832,35000,58),
+  tb('hornchurch','Hornchurch','havering',51.557,0.217,20000,50),
+  // hillingdon
+  tb('uxbridge','Uxbridge','hillingdon',51.546,-0.478,17000,48),
+  tb('hayes','Hayes','hillingdon',51.509,-0.42,20000,50),
+  // hounslow
+  tb('hounslowtn','Hounslow','hounslow',51.468,-0.36,25000,50),
+  tb('brentford','Brentford','hounslow',51.488,-0.312,18000,52),
+  // kingstonb
+  tb('kingstontn','Kingston upon Thames','kingstonb',51.4085,-0.3064,25000,52),
+  tb('surbiton','Surbiton','kingstonb',51.393,-0.304,20000,48),
+  // merton
+  tb('wimbledon','Wimbledon','merton',51.4214,-0.2064,25000,56),
+  tb('mitcham','Mitcham','merton',51.402,-0.167,20000,50),
+  // newham
+  tb('stratford','Stratford','newham',51.5416,-0.0042,30000,62),
+  tb('eastham','East Ham','newham',51.539,0.052,25000,54),
+  // redbridge
+  tb('ilfordb','Ilford','redbridge',51.559,0.074,35000,58),
+  tb('wanstead','Wanstead','redbridge',51.576,0.029,14000,50),
+  // richmond
+  tb('richmondtn','Richmond','richmond',51.4613,-0.3037,20000,50),
+  tb('twickenham','Twickenham','richmond',51.4468,-0.332,22000,50),
+  // suttonb
+  tb('suttontn','Sutton','suttonb',51.3618,-0.1945,22000,50),
+  tb('carshalton','Carshalton','suttonb',51.365,-0.167,16000,46),
+  // walthamforest
+  tb('walthamstow','Walthamstow','walthamforest',51.5908,-0.0134,28000,56),
+  tb('leyton','Leyton','walthamforest',51.562,-0.008,25000,54),
+  // Greater Manchester
+  t('manchester','Manchester','gtrmanchester',53.4808,-2.2426,552000,88),
+  t('salford','Salford','gtrmanchester',53.4875,-2.2901,270000,76),
+  t('bolton','Bolton','gtrmanchester',53.5769,-2.4282,196000,70),
+  t('stockport','Stockport','gtrmanchester',53.4084,-2.1494,143000,64),
+  t('oldham','Oldham','gtrmanchester',53.5409,-2.1114,141000,62),
+  // West Yorkshire
+  t('leeds','Leeds','westyorks',53.8008,-1.5491,516000,80),
+  t('bradford','Bradford','westyorks',53.7960,-1.7594,349000,73),
+  t('huddersfield','Huddersfield','westyorks',53.6458,-1.7850,163000,66),
+  t('wakefield','Wakefield','westyorks',53.6833,-1.4977,109000,60),
+  t('halifax','Halifax','westyorks',53.7218,-1.8607,89000,58),
+  // West Midlands
+  t('birmingham','Birmingham','westmids',52.4862,-1.8904,1140000,85),
+  t('wolverhampton','Wolverhampton','westmids',52.5870,-2.1288,264000,74),
+  t('coventry','Coventry','westmids',52.4068,-1.5197,371000,72),
+  t('walsall','Walsall','westmids',52.5862,-1.9829,180000,63),
+  t('dudley','Dudley','westmids',52.5121,-2.0888,79000,60),
+  // Merseyside
+  t('liverpool','Liverpool','merseyside',53.4084,-2.9916,498000,92),
+  t('birkenhead','Birkenhead','merseyside',53.3936,-3.0140,88000,68),
+  t('sthelens','St Helens','merseyside',53.4530,-2.7370,102000,62),
+  t('southport','Southport','merseyside',53.6458,-3.0110,91000,56),
+  // Tyne & Wear
+  t('newcastle','Newcastle upon Tyne','tyneandwear',54.9783,-1.6178,300000,90),
+  t('sunderland','Sunderland','tyneandwear',54.9069,-1.3838,175000,78),
+  t('gateshead','Gateshead','tyneandwear',54.9526,-1.6035,120000,64),
+  // Bristol & Somerset
+  t('bristol','Bristol','bristolsom',51.4545,-2.5879,463000,74),
+  t('bath','Bath','bristolsom',51.3811,-2.3590,94000,50),
+  t('westonsupermare','Weston-super-Mare','bristolsom',51.3458,-2.9770,82000,52),
+  // Central Scotland
+  t('glasgow','Glasgow','centralscot',55.8642,-4.2518,635000,93),
+  t('edinburgh','Edinburgh','centralscot',55.9533,-3.1883,530000,80),
+  t('paisley','Paisley','centralscot',55.8456,-4.4239,77000,66),
+  t('falkirk','Falkirk','centralscot',55.9997,-3.7838,35000,58),
+  t('stirling','Stirling','centralscot',56.1165,-3.9369,37000,55),
+  // North East Scotland
+  t('aberdeen','Aberdeen','northeastscot',57.1497,-2.0943,198000,71),
+  t('dundee','Dundee','northeastscot',56.4620,-2.9707,148000,68),
+  t('perth','Perth','northeastscot',56.3958,-3.4308,47000,52)
+];
+const TOWN_DATA_EXTRA = [
+  // bedfordshire
+  t('bedford','Bedford','bedfordshire',52.1357,-0.4666,106000,55),
+  t('luton','Luton','bedfordshire',51.8787,-0.42,225000,62),
+  // berkshire
+  t('reading','Reading','berkshire',51.4543,-0.9781,174000,64),
+  t('slough','Slough','berkshire',51.5105,-0.595,164000,58),
+  // buckinghamshire
+  t('aylesbury','Aylesbury','buckinghamshire',51.8156,-0.8129,84000,54),
+  t('highwycombe','High Wycombe','buckinghamshire',51.6285,-0.7485,133000,56),
+  // cambridgeshire
+  t('cambridge','Cambridge','cambridgeshire',52.2053,0.1218,145000,58),
+  t('peterborough','Peterborough','cambridgeshire',52.5695,-0.2405,204000,62),
+  // cheshire
+  t('chester','Chester','cheshire',53.1934,-2.8931,118000,60),
+  t('warrington','Warrington','cheshire',53.39,-2.597,209000,66),
+  // cornwall
+  t('truro','Truro','cornwall',50.2632,-5.051,19000,50),
+  t('newquay','Newquay','cornwall',50.4155,-5.084,20000,48),
+  // countydurham
+  t('durham','Durham','countydurham',54.7761,-1.5733,48000,56),
+  t('darlington','Darlington','countydurham',54.5253,-1.5849,107000,60),
+  // cumbria
+  t('carlisle','Carlisle','cumbria',54.8951,-2.9382,75000,58),
+  t('kendal','Kendal','cumbria',54.3288,-2.746,29000,46),
+  // derbyshire
+  t('derby','Derby','derbyshire',52.9225,-1.4746,258000,68),
+  t('chesterfield','Chesterfield','derbyshire',53.235,-1.421,88000,58),
+  // devon
+  t('exeter','Exeter','devon',50.7184,-3.5339,130000,58),
+  t('plymouth','Plymouth','devon',50.3755,-4.1427,264000,68),
+  // dorset
+  t('dorchester','Dorchester','dorset',50.7156,-2.4367,21000,45),
+  t('bournemouth','Bournemouth','dorset',50.7192,-1.8808,197000,60),
+  // eastridingyorks
+  t('hull','Kingston upon Hull','eastridingyorks',53.7457,-0.3367,260000,72),
+  t('beverley','Beverley','eastridingyorks',53.8459,-0.4269,30000,48),
+  // eastsussex
+  t('brighton','Brighton & Hove','eastsussex',50.8225,-0.1372,290000,68),
+  t('eastbourne','Eastbourne','eastsussex',50.7687,0.29,104000,54),
+  // gloucestershire
+  t('gloucester','Gloucester','gloucestershire',51.8642,-2.2382,132000,58),
+  t('cheltenham','Cheltenham','gloucestershire',51.8994,-2.0783,118000,52),
+  // hampshire
+  t('southampton','Southampton','hampshire',50.9097,-1.4044,253000,70),
+  t('portsmouth','Portsmouth','hampshire',50.8198,-1.088,208000,72),
+  // herefordshire
+  t('hereford','Hereford','herefordshire',52.0567,-2.716,60000,48),
+  t('leominster','Leominster','herefordshire',52.226,-2.739,12000,42),
+  // hertfordshire
+  t('watford','Watford','hertfordshire',51.6565,-0.3903,102000,58),
+  t('stalbans','St Albans','hertfordshire',51.752,-0.336,148000,54),
+  // isleofwight
+  t('newportiw','Newport','isleofwight',50.7,-1.29,25000,50),
+  t('ryde','Ryde','isleofwight',50.728,-1.16,24000,46),
+  // lancashire
+  t('preston','Preston','lancashire',53.7632,-2.7031,141000,62),
+  t('blackpool','Blackpool','lancashire',53.8175,-3.0357,139000,60),
+  // leicestershire
+  t('leicester','Leicester','leicestershire',52.6369,-1.1398,355000,74),
+  t('loughborough','Loughborough','leicestershire',52.7721,-1.2062,60000,52),
+  // lincolnshire
+  t('lincoln','Lincoln','lincolnshire',53.2307,-0.5406,100000,56),
+  t('grimsby','Grimsby','lincolnshire',53.5675,-0.081,88000,58),
+  // norfolk
+  t('norwich','Norwich','norfolk',52.6309,1.2974,144000,60),
+  t('greatyarmouth','Great Yarmouth','norfolk',52.607,1.729,38000,52),
+  // northyorkshire
+  t('york','York','northyorkshire',53.96,-1.0873,153000,58),
+  t('harrogate','Harrogate','northyorkshire',53.9919,-1.538,75000,50),
+  // northamptonshire
+  t('northampton','Northampton','northamptonshire',52.2405,-0.9027,225000,62),
+  t('kettering','Kettering','northamptonshire',52.399,-0.728,63000,52),
+  // northumberland
+  t('alnwick','Alnwick','northumberland',55.4147,-1.706,8000,44),
+  t('morpeth','Morpeth','northumberland',55.167,-1.689,14000,46),
+  // nottinghamshire
+  t('nottingham','Nottingham','nottinghamshire',52.9548,-1.1581,331000,76),
+  t('mansfield','Mansfield','nottinghamshire',53.1472,-1.1988,109000,58),
+  // oxfordshire
+  t('oxford','Oxford','oxfordshire',51.752,-1.2577,152000,58),
+  t('banbury','Banbury','oxfordshire',52.0629,-1.34,47000,50),
+  // rutland
+  t('oakham','Oakham','rutland',52.6706,-0.728,11000,44),
+  t('uppingham','Uppingham','rutland',52.592,-0.713,4500,40),
+  // shropshire
+  t('shrewsbury','Shrewsbury','shropshire',52.7069,-2.7538,76000,52),
+  t('telford','Telford','shropshire',52.6786,-2.4453,155000,58),
+  // southyorkshire
+  t('sheffield','Sheffield','southyorkshire',53.3811,-1.4701,584000,80),
+  t('doncaster','Doncaster','southyorkshire',53.5228,-1.1285,110000,62),
+  // staffordshire
+  t('stokeontrent','Stoke-on-Trent','staffordshire',53.0027,-2.1794,270000,66),
+  t('stafford','Stafford','staffordshire',52.8062,-2.1169,68000,50),
+  // suffolk
+  t('ipswich','Ipswich','suffolk',52.0567,1.1482,139000,58),
+  t('burystedmunds','Bury St Edmunds','suffolk',52.245,0.71,42000,48),
+  // surrey
+  t('guildford','Guildford','surrey',51.2362,-0.5704,77000,52),
+  t('woking','Woking','surrey',51.3168,-0.56,63000,50),
+  // warwickshire
+  t('warwick','Warwick','warwickshire',52.2823,-1.5849,32000,50),
+  t('nuneaton','Nuneaton','warwickshire',52.523,-1.468,86000,58),
+  // westsussex
+  t('chichester','Chichester','westsussex',50.8365,-0.7792,28000,46),
+  t('crawley','Crawley','westsussex',51.1092,-0.1873,118000,58),
+  // wiltshire
+  t('salisbury','Salisbury','wiltshire',51.0688,-1.7936,41000,48),
+  t('swindon','Swindon','wiltshire',51.5558,-1.7797,183000,60),
+  // worcestershire
+  t('worcester','Worcester','worcestershire',52.1936,-2.2216,103000,54),
+  t('redditch','Redditch','worcestershire',52.3068,-1.941,84000,54),
+  // highland
+  t('inverness','Inverness','highland',57.4778,-4.2247,47000,58),
+  t('fortwilliam','Fort William','highland',56.8198,-5.1052,10000,44),
+  // argyllbute
+  t('oban','Oban','argyllbute',56.415,-5.472,8500,44),
+  t('dunoon','Dunoon','argyllbute',55.948,-4.925,8700,42),
+  // ayrshire
+  t('ayr','Ayr','ayrshire',55.4586,-4.629,47000,60),
+  t('kilmarnock','Kilmarnock','ayrshire',55.611,-4.496,44000,58),
+  // dumfriesgalloway
+  t('dumfries','Dumfries','dumfriesgalloway',55.07,-3.605,32000,50),
+  t('stranraer','Stranraer','dumfriesgalloway',54.902,-5.025,10000,42),
+  // scottishborders
+  t('galashiels','Galashiels','scottishborders',55.618,-2.802,15000,46),
+  t('hawick','Hawick','scottishborders',55.423,-2.783,14000,48),
+  // fife
+  t('kirkcaldy','Kirkcaldy','fife',56.1165,-3.159,50000,58),
+  t('standrews','St Andrews','fife',56.3398,-2.7967,17000,46),
+  // angus
+  t('arbroath','Arbroath','angus',56.561,-2.588,24000,50),
+  t('forfar','Forfar','angus',56.642,-2.888,14000,46),
+  // moray
+  t('elgin','Elgin','moray',57.6486,-3.3153,25000,46),
+  t('forres','Forres','moray',57.61,-3.626,13000,42),
+  // lanarkshire
+  t('hamilton','Hamilton','lanarkshire',55.777,-4.037,54000,58),
+  t('motherwell','Motherwell','lanarkshire',55.787,-3.994,32000,56),
+  // renfrewshire
+  t('renfrew','Renfrew','renfrewshire',55.872,-4.39,21000,54),
+  t('johnstone','Johnstone','renfrewshire',55.833,-4.51,17000,50),
+  // orkneyshetland
+  t('kirkwall','Kirkwall','orkneyshetland',58.981,-2.96,9000,42),
+  t('lerwick','Lerwick','orkneyshetland',60.155,-1.144,7000,40),
+  // westernisles
+  t('stornoway','Stornoway','westernisles',58.209,-6.388,8000,42),
+  t('tarbert','Tarbert (Harris)','westernisles',57.896,-6.794,1900,38),
+];
+TOWN_DATA.push(...TOWN_DATA_EXTRA);
+
+
+const SITE_TEMPLATES = [
+  {key:'riverside', suffix:'Riverside Meadow', kind:'Greenfield', dLat:0.015, dLng:0.02,
+    baseCost:8000, ceiling:5, transport:'Poor — no direct rail', desc:'Open meadow beside the river. Cheap to acquire with room to grow, but transport links will need investment.'},
+  {key:'retailpark', suffix:'Retail Park Redevelopment', kind:'Brownfield', dLat:-0.012, dLng:0.018,
+    baseCost:35000, ceiling:4, transport:'Good — near main road and bus routes', desc:'A struggling retail park earmarked for redevelopment. Solid transport links, moderate long-term capacity.'},
+  {key:'industrial', suffix:'Old Industrial Estate', kind:'Brownfield', dLat:0.01, dLng:-0.02,
+    baseCost:22000, ceiling:4, transport:'Decent — freight road access', desc:'Disused industrial land close to the town centre. Reasonably priced, though neighbours may raise noise concerns.'},
+  {key:'towncentre', suffix:'Town Centre Plot', kind:'Urban infill', dLat:-0.006, dLng:-0.01,
+    baseCost:65000, ceiling:3, transport:'Excellent — walking distance from the station', desc:'A tight but prestigious plot right in the heart of town. Expensive and size-limited, but unbeatable matchday atmosphere and footfall.'}
+];
+function sitesForTown(town){
+  return SITE_TEMPLATES.map(st=>{
+    const costMult = 0.7 + seededRandom(town.id+st.key+'cost')*0.8;
+    return {
+      id: town.id+'-'+st.key,
+      name: town.name+' '+st.suffix,
+      kind: st.kind,
+      lat: town.lat+st.dLat, lng: town.lng+st.dLng,
+      cost: Math.round(st.baseCost*costMult*(1+town.pop/300000)),
+      ceiling: st.ceiling,
+      transport: st.transport,
+      desc: st.desc
+    };
+  });
+}
+
+/* ---------------- Club / chairman customisation data ---------------- */
+
+const CLUB_SUFFIXES = ['Rovers','Athletic','Wanderers','Albion','Forest FC','Corinthians','Colts','Rangers FC'];
+const KIT_PATTERNS = [
+  {id:'plain', label:'Plain'}, {id:'hoops', label:'Hoops'},
+  {id:'stripes', label:'Stripes'}, {id:'sash', label:'Sash'},
+  {id:'halves', label:'Halves'}, {id:'checkered', label:'Checkered'}
+];
+const BADGE_SHAPES = [
+  {id:'shield', label:'Shield'}, {id:'circle', label:'Roundel'},
+  {id:'hexagon', label:'Hexagon'}, {id:'diamond', label:'Diamond'},
+  {id:'star', label:'Star'}, {id:'oval', label:'Oval'}
+];
+const COLOUR_PRESETS = [
+  {primary:'#1E5C46', secondary:'#E8C158', name:'Forest & Gold'},
+  {primary:'#7A1E2B', secondary:'#F4EFE3', name:'Claret & Cream'},
+  {primary:'#0F3D7A', secondary:'#FFFFFF', name:'Royal Blue'},
+  {primary:'#1B1B1B', secondary:'#E5484D', name:'Black & Red'},
+  {primary:'#0A6B3B', secondary:'#FFFFFF', name:'Green & White'},
+  {primary:'#3DA5D9', secondary:'#0A0D13', name:'Sky Blue'},
+  {primary:'#E8C158', secondary:'#1B1B1B', name:'Amber & Black'},
+  {primary:'#5C2D91', secondary:'#F4EFE3', name:'Purple Reign'}
+];
+const BADGE_ICONS = {
+  star:'M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z',
+  lion:'M12 3c-2 0-3 2-3 4 0 1 .3 2 .8 2.7-2 .5-3.8 2-3.8 4.3 0 2.7 2.7 4.5 6 4.5s6-1.8 6-4.5c0-2.3-1.8-3.8-3.8-4.3.5-.7.8-1.7.8-2.7 0-2-1-4-3-4z',
+  ball:'M12 2a10 10 0 100 20 10 10 0 000-20zm0 3l2.5 1.8-1 3H10.5l-1-3zM4.5 9l3 .9.6 3-2 2.4L4 15zm15 0l1 5.3-2.1 .3-2-2.4.6-3zM8 18.5l1.2-3H14.8l1.2 3-2 1.5h-4z',
+  tree:'M12 2l4 6h-2.5l3.5 5h-3l3 5H7l3-5H7l3.5-5H8z M11 18h2v4h-2z',
+  crown:'M4 8l4 3 4-6 4 6 4-3-1.5 9h-13z',
+  anchor:'M12 3v4M9 5h6M12 7a3 3 0 100 6 3 3 0 000-6zM12 13v7M6 15a6 6 0 0012 0M6 15H4M18 15h2',
+  eagle:'M12 3c1 3 5 4 9 3-3 3-4 6-4 9l-5 3-5-3c0-3-1-6-4-9 4 1 8 0 9-3z',
+  wheat:'M12 2v20M12 6l-3-2M12 6l3-2M12 10l-3-2M12 10l3-2M12 14l-3-2M12 14l3-2M12 18l-3-2M12 18l3-2'
+};
+const CHAIR_BACKGROUNDS = [
+  {id:'local', label:'Local Business Owner', desc:'Runs a well-known business in town. Strong local sponsorship contacts.', mod:{cashMult:1.0, sponsorBonus:0.25}},
+  {id:'boyhood', label:'Boyhood Fan Turned Investor', desc:'Grew up on the terraces. Supporters trust you from day one.', mod:{cashMult:0.9, reputationBonus:8}},
+  {id:'expro', label:'Former Professional Player', desc:'A playing career gives you credibility with players and staff.', mod:{cashMult:0.85, staffBonus:6}},
+  {id:'developer', label:'Property Developer', desc:'Knows how to get planning permission through and land cheap.', mod:{cashMult:1.1, cityDiscount:0.15}},
+  {id:'overseas', label:'Overseas Investor', desc:'Deep pockets from abroad, but less local knowledge to start.', mod:{cashMult:1.6, reputationBonus:-5}},
+  {id:'consortium', label:'Season-Ticket Holder Consortium', desc:'A group of fans pooled resources to buy the club together.', mod:{cashMult:0.8, reputationBonus:10}},
+  {id:'media', label:'Media Entrepreneur', desc:'Well connected in broadcasting and sponsorship circles.', mod:{cashMult:1.05, sponsorBonus:0.4}},
+  {id:'inheritance', label:'Family Inheritance', desc:'The club (or the money) has been passed down through the family.', mod:{cashMult:1.2, reputationBonus:3}}
+];
+const SKIN_TONES = ['#F1C9A0','#E0AC80','#C48A5C','#9C6A44','#6E4A30'];
+const HAIR_COLORS = ['#1B1B1B','#4A3222','#8A5A2B','#C7A24A','#B0B0B0','#7A1E1E'];
+const HAIR_STYLES = [
+  {id:'bald', label:'Bald'}, {id:'short', label:'Short'}, {id:'long', label:'Long'},
+  {id:'quiff', label:'Quiff'}, {id:'curly', label:'Curly'}, {id:'bun', label:'Bun'},
+  {id:'mohawk', label:'Mohawk'}, {id:'afro', label:'Afro'}
+];
+const OUTFIT_TYPES = [
+  {id:'suit', label:'Business Suit'}, {id:'tracksuit', label:'Club Tracksuit'},
+  {id:'blazer', label:'Blazer & Scarf'}, {id:'polo', label:'Polo Shirt'}
+];
+
+/* ---------------- Game data: tiers, stands, tiles, modes ---------------- */
+
+const TIERS = [
+  "Sunday League","Parish Cup Division","County League","Step 5 (Regional Premier)",
+  "Step 4 (National North/South)","Step 3 (National League)","League Two","League One",
+  "Championship","Premier League"
+];
+const GAME_MODES = {
+  grassroots: {label:'Grassroots', desc:'Start with almost nothing — a Sunday League side and a field with a rope round it.',
+    cash:2000, reputation:5, supporters:80, standTier:0, playerQuality:15, academyQuality:10,
+    staffQuality:15, debt:0, tier:0, difficulty:0.9},
+  fallenGiant: {label:'Fallen Giant', desc:'A once-famous club that has slid down the pyramid. Faded glory, thin support, a stadium built for a bigger club.',
+    cash:15000, reputation:55, supporters:3500, standTier:2, playerQuality:35, academyQuality:30,
+    staffQuality:30, debt:120000, tier:5, difficulty:1.1},
+  sugarDaddy: {label:'Sugar Daddy', desc:'Enormous financial backing from day one. Money is rarely the constraint — ambition and patience are.',
+    cash:2000000, reputation:20, supporters:600, standTier:1, playerQuality:40, academyQuality:35,
+    staffQuality:45, debt:0, tier:2, difficulty:1.0},
+  localHero: {label:'Local Hero', desc:'Community comes first. Modest resources, but deep local support and goodwill to build on.',
+    cash:8000, reputation:25, supporters:900, standTier:1, playerQuality:22, academyQuality:25,
+    staffQuality:20, debt:0, tier:3, difficulty:0.95},
+  newClub: {label:'New Club', desc:'No history, no ground, no supporters yet. Build an entire football institution from a blank field.',
+    cash:25000, reputation:1, supporters:20, standTier:0, playerQuality:18, academyQuality:10,
+    staffQuality:18, debt:0, tier:0, difficulty:1.0},
+  derbyWars: {label:'Derby Wars', desc:'Start in a hotbed of local rivalry, right in the shadow of established, hostile neighbours.',
+    cash:10000, reputation:30, supporters:1500, standTier:1, playerQuality:28, academyQuality:20,
+    staffQuality:25, debt:0, tier:3, difficulty:1.15},
+  academyProject: {label:'Academy Project', desc:'A modest first team, but serious backing for youth development from day one.',
+    cash:12000, reputation:20, supporters:600, standTier:1, playerQuality:20, academyQuality:55,
+    staffQuality:25, debt:0, tier:2, difficulty:1.0},
+  empireBuilder: {label:'Build an Empire', desc:'A strong, balanced starting position with room to expand club, property and town in every direction.',
+    cash:60000, reputation:35, supporters:2000, standTier:2, playerQuality:32, academyQuality:32,
+    staffQuality:32, debt:0, tier:4, difficulty:1.0},
+  custom: {label:'Fully Custom', desc:'Set every starting parameter yourself.',
+    cash:20000, reputation:25, supporters:1000, standTier:1, playerQuality:25, academyQuality:25,
+    staffQuality:25, debt:0, tier:3, difficulty:1.0}
+};
+const STAND_TIERS = [
+  {name:'Open Terrace', cap:200, cost:0},
+  {name:'Covered Terrace', cap:600, cost:12000},
+  {name:'Seated Stand', cap:1500, cost:45000},
+  {name:'Two-Tier Stand', cap:4000, cost:150000},
+  {name:'Modern Stand', cap:9000, cost:450000},
+  {name:'Premier Stand', cap:18000, cost:1200000}
+];
+const CITY_TILE_TYPES = {
+  empty:{label:'Clear land', color:'#26364a', cost:0},
+  road:{label:'Road', color:'#4a4a4a', cost:400, income:0, popEffect:0, trafficEffect:-1},
+  house:{label:'Houses', color:'#8a6a45', cost:3000, income:35, popEffect:2, trafficEffect:1},
+  apartments:{label:'Club Apartments', color:'#b48a52', cost:9000, income:110, popEffect:4, trafficEffect:1},
+  shop:{label:'Shop Unit', color:'#c98f3c', cost:4000, income:60, popEffect:1, trafficEffect:1},
+  restaurant:{label:'Restaurant/Bar', color:'#c96a3c', cost:6000, income:90, popEffect:1, trafficEffect:1},
+  fanzone:{label:'Fan Zone', color:'#3ca0c9', cost:5000, income:20, popEffect:0, trafficEffect:1, reputation:2},
+  park:{label:'Park', color:'#4c8c5b', cost:2500, income:0, popEffect:1, trafficEffect:-1, reputation:1},
+  hotel:{label:'Hotel', color:'#8a5cc9', cost:20000, income:220, popEffect:1, trafficEffect:2},
+  office:{label:'Offices', color:'#3ca6c9', cost:12000, income:150, popEffect:1, trafficEffect:1},
+  trainstop:{label:'Train Halt', color:'#c9c23c', cost:25000, income:10, popEffect:2, trafficEffect:-3, reputation:2}
+};
+const GENERIC_NAMES = ['Hillside Rovers','Kingsway Athletic','Oakfield United','Vale Wanderers',
+  'Brookside Town','Fenwick Albion','Sandmoor City','Castlegate Forest','Whitby Corinthians','Ashworth Colts'];
+
+/* ---------------- Random events ---------------- */
+
+const EVENTS = [
+  {id:'pitchinvasion', title:'Pitch Invasion', kicker:'⚡ Matchday Incident',
+    text:(g)=>`After a big win, jubilant fans spill onto the pitch at full time. The league charges ${g.club.name} with a fine for failing to control the crowd.`,
+    choices:[
+      {label:'Pay the fine quietly', desc:'Lose £2,500. Reputation unaffected.', apply:(g)=>{ g.club.cash-=2500; return 'The fine is paid without fuss.'; }},
+      {label:'Appeal the charge', desc:'50/50 — could save the money, could cost more and anger the league.', apply:(g)=>{
+        if(Math.random()<0.5){ return 'The appeal succeeds — no fine at all.'; }
+        g.club.cash-=5000; g.club.reputation=Math.max(1,g.club.reputation-2);
+        return 'The appeal fails and the league takes a dim view. Fine doubled.'; }}
+    ]},
+  {id:'takeover', title:'Takeover Interest', kicker:'⚡ Boardroom',
+    text:(g)=>`An investment group approaches the board with an offer of fresh capital in exchange for future influence over ${g.club.name}.`,
+    choices:[
+      {label:'Accept the investment', desc:'+£40,000 cash now, but the board expects faster results.', apply:(g)=>{ g.club.cash+=40000; g.club.reputation=Math.max(1,g.club.reputation-2); return 'The cash injection lands, but expectations rise sharply.'; }},
+      {label:'Politely decline', desc:'Keep full control. Supporters approve of independence.', apply:(g)=>{ g.club.reputation=Math.min(100,g.club.reputation+3); return 'The offer is turned down. Fans respect the show of independence.'; }}
+    ]},
+  {id:'prospect', title:'Academy Breakthrough', kicker:'⚡ Youth Development', auto:true,
+    text:(g)=>`A standout academy graduate forces their way into first-team plans, lifting both the squad and the youth setup's reputation.`,
+    apply:(g)=>{ g.club.playerQuality=Math.min(100,g.club.playerQuality+2); g.club.academyQuality=Math.min(100,g.club.academyQuality+1); return null; }},
+  {id:'floodlights', title:'Floodlight Failure', kicker:'⚡ Stadium',
+    text:(g)=>`A fault knocks out half of the floodlights at ${g.club.stadiumName||'the ground'} just days before a fixture.`,
+    choices:[
+      {label:'Emergency repair', desc:'-£6,000 but fixed immediately.', apply:(g)=>{ g.club.cash-=6000; return 'Engineers work through the night — the lights are back on.'; }},
+      {label:'Temporary floodlight hire', desc:'-£1,500 now, small risk of a postponement fine later.', apply:(g)=>{ g.club.cash-=1500; if(Math.random()<0.3){ g.club.cash-=3000; return 'The temporary rig fails on matchday — a postponement fine follows.'; } return 'The temporary rig holds up just fine.'; }}
+    ]},
+  {id:'councilobjection', title:'Council Planning Objection', kicker:'⚡ Local Council',
+    text:(g)=>`Local residents object to the club's development plans at a heated planning meeting.`,
+    choices:[
+      {label:'Fund a community consultation', desc:'-£4,000, smooths things over.', apply:(g)=>{ g.club.cash-=4000; g.club.reputation=Math.min(100,g.club.reputation+2); return 'The consultation wins some goodwill back.'; }},
+      {label:'Push the plans through anyway', desc:'No cost, but reputation takes a hit.', apply:(g)=>{ g.club.reputation=Math.max(1,g.club.reputation-4); return 'The plans go ahead, but relations with the council cool.'; }}
+    ]},
+  {id:'sponsor', title:'Sponsorship Approach', kicker:'⚡ Commercial',
+    text:(g)=>`A local business owner offers to put their name on the shirt for a season.`,
+    choices:[
+      {label:'Accept the deal', desc:'+£9,000 now.', apply:(g)=>{ g.club.cash+=9000; return 'The deal is signed — a new name appears on the shirt.'; }},
+      {label:'Hold out for a bigger sponsor', desc:'No immediate cash, keeps options open.', apply:(g)=>{ return 'The offer is declined for now.'; }}
+    ]},
+  {id:'cupshock', title:'Cup Shock', kicker:'⚡ Cup Competition', auto:true,
+    text:(g)=>`${g.club.name} pull off a giant-killing in a cup competition, earning prize money and national attention.`,
+    apply:(g)=>{ g.club.cash+=6000; g.club.reputation=Math.min(100,g.club.reputation+4); return null; }},
+  {id:'weather', title:'Weather Postponement', kicker:'⚡ Matchday', auto:true,
+    text:(g)=>`A waterlogged pitch forces a late postponement, costing the club a week of gate receipts.`,
+    apply:(g)=>{ g.club.cash-=1200; return null; }},
+  {id:'hooligan', title:'Crowd Trouble', kicker:'⚡ Matchday Incident',
+    text:(g)=>`Scuffles break out between rival groups of supporters near the ground.`,
+    choices:[
+      {label:'Crack down with bans', desc:'-£2,000 on extra stewarding, reputation recovers faster.', apply:(g)=>{ g.club.cash-=2000; g.club.reputation=Math.max(1,g.club.reputation-1); return 'Known troublemakers are banned. The club is seen to act decisively.'; }},
+      {label:'Play it down', desc:'No cost, but reputation takes a bigger hit.', apply:(g)=>{ g.club.reputation=Math.max(1,g.club.reputation-4); return 'The incident is downplayed publicly, drawing some criticism.'; }}
+    ]},
+  {id:'groundshare', title:'Groundshare Offer', kicker:'⚡ Stadium',
+    text:(g)=>`A smaller local side, priced out of their own repairs, asks about groundsharing for a fee.`,
+    choices:[
+      {label:'Accept the arrangement', desc:'+£5,000 per season, slightly busier fixture calendar.', apply:(g)=>{ g.club.cash+=5000; return 'The groundshare is agreed — useful extra income.'; }},
+      {label:'Decline', desc:'Keep the pitch to yourselves.', apply:(g)=>{ return 'The offer is politely declined.'; }}
+    ]},
+  {id:'documentary', title:'Documentary Offer', kicker:'⚡ Media',
+    text:(g)=>`A streaming production company wants to follow the club for a behind-the-scenes documentary series.`,
+    choices:[
+      {label:'Say yes', desc:'+£15,000 and a reputation boost, some risk of dressing-room friction.', apply:(g)=>{ g.club.cash+=15000; g.club.reputation=Math.min(100,g.club.reputation+5);
+        if(Math.random()<0.25){ g.club.reputation=Math.max(1,g.club.reputation-3); return 'The series raises the club\'s profile hugely — though not every player enjoys the cameras.'; }
+        return 'The series is a hit and the club\'s profile rises nationally.'; }},
+      {label:'Turn it down', desc:'Keep things private.', apply:(g)=>{ return 'The offer is turned down to protect the dressing room.'; }}
+    ]},
+  {id:'wonderkid', title:'Scout Tip-Off', kicker:'⚡ Recruitment',
+    text:(g)=>`A trusted scout flags a raw but promising young player available on the cheap.`,
+    choices:[
+      {label:'Sign the player', desc:'-£7,000, player quality rises.', apply:(g)=>{ if(g.club.cash<7000) return 'There isn\'t enough cash available to make the move.'; g.club.cash-=7000; g.club.playerQuality=Math.min(100,g.club.playerQuality+3); return 'The signing is completed — an exciting addition to the squad.'; }},
+      {label:'Pass on the deal', desc:'No cost, no risk.', apply:(g)=>{ return 'The move doesn\'t happen — perhaps a missed opportunity.'; }}
+    ]},
+  {id:'firesafety', title:'Safety Inspection', kicker:'⚡ Stadium',
+    text:(g)=>`A routine inspection flags an issue that must be fixed to keep the ground fully open.`,
+    choices:[
+      {label:'Pay for an immediate fix', desc:'-£8,000, no disruption.', apply:(g)=>{ g.club.cash-=8000; return 'The issue is resolved quickly and the ground stays fully open.'; }},
+      {label:'Reduce capacity temporarily', desc:'No cost, but matchday income dips for a while.', apply:(g)=>{ g.club.cash-=1000; g.townStats.happiness=Math.max(0,g.townStats.happiness-3); return 'Part of the ground is closed off until further notice — fans grumble.'; }}
+    ]},
+  {id:'localhero', title:'Local Hero Returns', kicker:'⚡ Club News', auto:true,
+    text:(g)=>`A well-known former player with local roots signals interest in returning to the club, lifting spirits around the town.`,
+    apply:(g)=>{ g.club.reputation=Math.min(100,g.club.reputation+3); g.club.supporters=Math.round(g.club.supporters*1.03); return null; }},
+  {id:'storm', title:'Storm Damage', kicker:'⚡ Stadium',
+    text:(g)=>`Severe storms tear part of the roof off one of the stands.`,
+    choices:[
+      {label:'Repair it properly', desc:'-£10,000, no lasting impact.', apply:(g)=>{ g.club.cash-=10000; return 'Contractors make a full repair within days.'; }},
+      {label:'Patch it up cheaply', desc:'-£2,000, but fans are unimpressed with the facilities.', apply:(g)=>{ g.club.cash-=2000; g.townStats.happiness=Math.max(0,g.townStats.happiness-4); return 'A temporary patch holds, but supporters aren\'t happy with the state of the ground.'; }}
+    ]},
+  {id:'communityaward', title:'Community Club of the Year', kicker:'⚡ Club News', auto:true,
+    text:(g)=>`${g.club.name}'s community work is recognised with a regional award and a small grant.`,
+    apply:(g)=>{ g.club.cash+=2500; g.club.reputation=Math.min(100,g.club.reputation+3); return null; }},
+  {id:'transferbid', title:'Transfer Bid Received', kicker:'⚡ Transfers',
+    text:(g)=>`A bigger club lodges a bid for the best player at ${g.club.name}.`,
+    choices:[
+      {label:'Accept the money', desc:'+£20,000, player quality drops.', apply:(g)=>{ g.club.cash+=20000; g.club.playerQuality=Math.max(5,g.club.playerQuality-4); return 'The bid is accepted — a big fee banked, but the squad is weaker for it.'; }},
+      {label:'Reject the bid', desc:'Keep the squad together, fans approve of the ambition.', apply:(g)=>{ g.club.reputation=Math.min(100,g.club.reputation+2); return 'The bid is rejected. Supporters welcome the show of ambition.'; }}
+    ]}
+];
+
+/* ---------------- State ---------------- */
+
+let state = null;
+
+function freshState(){
+  return {
+    screen:'onboard', // onboard -> location -> dashboard
+    onboardStep:1,
+    club:{
+      name:'', shortName:'', nickname:'', primary:'#1E5C46', secondary:'#E8C158',
+      shorts:'#1B1B1B', socks:'#1E5C46',
+      kitPattern:'plain', badgeShape:'shield', badgeIcon:'star',
+      stadiumName:'', motto:'', founded:2026, mode:'newClub', custom:false
+    },
+    chairman:{ name:'', age:42, background:'local', skin:SKIN_TONES[1], hair:'short', hairColor:HAIR_COLORS[0],
+      outfit:'suit', suitColor:'#1E5C46', ambition:60, patience:50, riskTolerance:50, fanFocus:60, financialPrudence:55, quote:'' },
+    customStats:{cash:20000, reputation:25, supporters:1000, standTier:1,
+      playerQuality:25, academyQuality:25, staffQuality:25, debt:0, tier:3},
+    locationLevel:'country', selectedCountyId:null, selectedBoroughId:null, selectedTownId:null, compareIds:[],
+    selectedSiteId:null, customSite:null, selectedParkId:null, finalSite:null,
+    musicOn:false, socialPosts:[], socialFollowers:120,
+    game:null
+  };
+}
+
+function currentBackgroundMod(){
+  const bg = CHAIR_BACKGROUNDS.find(b=>b.id===state.chairman.background) || CHAIR_BACKGROUNDS[0];
+  return bg.mod;
+}
+
+function startGame(){
+  const c = state.club;
+  const preset = c.custom ? state.customStats : GAME_MODES[c.mode];
+  const town = TOWN_DATA.find(x=>x.id===state.selectedTownId);
+  const site = state.finalSite || ((state.selectedSiteId==='custom' && state.customSite)
+    ? state.customSite
+    : sitesForTown(town).find(s=>s.id===state.selectedSiteId));
+  const mod = currentBackgroundMod();
+
+  const rivals = TOWN_DATA.filter(x=>x.id!==town.id).map(x=>{
+    const dist = Math.round(haversine(town.lat,town.lng,x.lat,x.lng));
+    return {
+      id:x.id+'-fc',
+      name: x.name.replace(' (Thurrock)','')+' '+CLUB_SUFFIXES[Math.floor(seededRandom(x.id+'suffix')*CLUB_SUFFIXES.length)],
+      townId:x.id, distance: dist,
+      tier: Math.max(0, Math.min(TIERS.length-1, preset.tier + Math.round((Math.random()*4)-2))),
+      reputation: Math.max(5, Math.round(preset.reputation + (Math.random()*30-15))),
+      playerQuality: Math.max(10, Math.round(preset.playerQuality + (Math.random()*20-10))),
+      form:[], rivalryScore: Math.max(0, Math.round(70 - dist*0.6)),
+      matchesPlayed:0
+    };
+  });
+
+  const tier = preset.tier;
+  let leagueClubs = rivals.filter(r=>r.tier===tier).sort((a,b)=>a.distance-b.distance);
+  let genCount = 0;
+  while(leagueClubs.length < 9){
+    genCount++;
+    leagueClubs.push({
+      id:'gen-'+tier+'-'+genCount,
+      name: GENERIC_NAMES[(genCount+tier*3)%GENERIC_NAMES.length],
+      townId:null, distance: 9999, tier:tier,
+      reputation: Math.max(5, Math.round(preset.reputation + (Math.random()*30-15))),
+      playerQuality: Math.max(10, Math.round(preset.playerQuality + (Math.random()*20-10))),
+      form:[], rivalryScore: 5, matchesPlayed:0
+    });
+  }
+  leagueClubs = leagueClubs.slice(0,9);
+
+  const cityGridSize = 7;
+  const cityGrid = [];
+  for(let y=0;y<cityGridSize;y++){ const row=[]; for(let x=0;x<cityGridSize;x++) row.push('empty'); cityGrid.push(row); }
+  const mid = Math.floor(cityGridSize/2);
+  cityGrid[mid][mid] = 'stadium';
+
+  const startCash = Math.round(preset.cash*(mod.cashMult||1) - site.cost);
+
+  state.game = {
+    week:1, season:1, seasonWeeks: 20,
+    club:{
+      ...c,
+      cash: startCash, debt: preset.debt,
+      reputation: Math.max(1, preset.reputation + (mod.reputationBonus||0)),
+      supporters: preset.supporters,
+      playerQuality: preset.playerQuality, academyQuality: preset.academyQuality,
+      staffQuality: Math.min(100, preset.staffQuality + (mod.staffBonus||0)),
+      tier: preset.tier,
+      stands:{ north: preset.standTier, south: Math.max(0,preset.standTier-1), east: Math.max(0,preset.standTier-2), west: Math.max(0,preset.standTier-2) },
+      form:[], matchesPlayed:0, wins:0, draws:0, losses:0, points:0, gf:0, ga:0,
+      ticketPrice: 12,
+      difficulty: preset.difficulty,
+      sponsorBonus: mod.sponsorBonus||0, cityDiscount: mod.cityDiscount||0
+    },
+    chairman: {...state.chairman},
+    town: JSON.parse(JSON.stringify(town)),
+    site: JSON.parse(JSON.stringify(site)),
+    townStats:{ population: town.pop, happiness:60, traffic:20, pollution:10 },
+    allRivals: rivals,
+    league: leagueClubs,
+    cityGrid, cityGridSize,
+    financeLog:[],
+    news:[{wk:0, text:`${c.name} is founded in ${town.name} in ${c.founded}, based at the new ${site.name}. The chairman's journey begins.`}],
+    fixtures: buildFixtures(leagueClubs),
+    selectedCityTile:'road',
+    pendingEvent:null
+  };
+  state.screen='dashboard';
+  state.dashTab='overview';
+  save();
+  render();
+}
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function buildFixtures(leagueClubs){
+  const opponents = leagueClubs.map(c=>c.id);
+  const fixtures = {}; let w=1;
+  opponents.forEach(id=>{ fixtures[w]={oppId:id, home:true}; w++; });
+  opponents.forEach(id=>{ fixtures[w]={oppId:id, home:false}; w++; });
+  return fixtures;
+}
+
+/* ---------------- Simulation ---------------- */
+
+function clubStrength(club){
+  return club.reputation*0.35 + club.playerQuality*0.35 + (club.staffQuality||25)*0.15 + (club.academyQuality||20)*0.15;
+}
+function simulateMatch(home, away, homeAdvantage){
+  const sH = clubStrength(home) + (homeAdvantage||0);
+  const sA = clubStrength(away);
+  const total = sH+sA;
+  const expH = 1.1 + (sH/total)*2.4;
+  const expA = 1.1 + (sA/total)*2.4;
+  return {gH:poissonish(expH), gA:poissonish(expA)};
+}
+function poissonish(lambda){ let L=Math.exp(-lambda),k=0,p=1; do{k++;p*=Math.random();}while(p>L&&k<10); return k-1; }
+function findRival(oppId){ return state.game.allRivals.find(r=>r.id===oppId); }
+
+function tickWeek(){
+  if(state.game.pendingEvent) return;
+  const g = state.game;
+  const fixture = g.fixtures[g.week];
+  const news = [];
+
+  if(fixture){
+    const oppData = g.league.find(c=>c.id===fixture.oppId) || findRival(fixture.oppId);
+    const rival = findRival(fixture.oppId);
+    const isDerby = rival && rival.rivalryScore >= 55;
+    const {gH,gA} = simulateMatch(fixture.home?g.club:oppData, fixture.home?oppData:g.club, fixture.home?4:0);
+    const playerGoals = fixture.home?gH:gA, oppGoals = fixture.home?gA:gH;
+    updateClubResult(g.club, playerGoals, oppGoals);
+    updateClubResult(oppData, oppGoals, playerGoals);
+    oppData.matchesPlayed=(oppData.matchesPlayed||0)+1;
+    if(rival){ rival.matchesPlayed++; rival.rivalryScore=Math.min(100, rival.rivalryScore+4+(isDerby?4:0)); }
+
+    const result = playerGoals>oppGoals?'win':playerGoals<oppGoals?'loss':'draw';
+    const attendance = computeAttendance(isDerby);
+    const gate = attendance*g.club.ticketPrice;
+    if(fixture.home){
+      g.club.cash += gate;
+      news.push(`${isDerby?'DERBY DAY! ':''}${g.club.name} ${playerGoals}-${oppGoals} ${oppData.name}. Attendance ${attendance.toLocaleString()}, gate receipts £${Math.round(gate).toLocaleString()}.`);
+    } else {
+      news.push(`${isDerby?'DERBY DAY! ':''}${oppData.name} ${oppGoals}-${playerGoals} ${g.club.name} (away).`);
+    }
+    if(result==='win') g.club.reputation=Math.min(100,g.club.reputation+(isDerby?2.5:1));
+    if(result==='loss') g.club.reputation=Math.max(1,g.club.reputation-(isDerby?1.5:0.6));
+    g.club.supporters=Math.max(10,Math.round(g.club.supporters*(result==='win'?1.01:result==='loss'?0.995:1.0)));
+  } else {
+    news.push('Quiet week — training continues, the club and town tick over.');
+  }
+
+  const fin = weeklyFinance();
+  g.club.cash += fin.net;
+  g.financeLog.push({week:g.week, ...fin});
+  if(g.financeLog.length>16) g.financeLog.shift();
+
+  tickTown();
+
+  g.allRivals.forEach(r=>{
+    if(Math.random()<0.15) r.reputation=Math.min(100,r.reputation+Math.round(Math.random()*3));
+    if(Math.random()<0.1) r.playerQuality=Math.min(100,r.playerQuality+Math.round(Math.random()*3));
+  });
+
+  g.news.unshift(...news.map(n=>({wk:g.week, text:n})));
+  g.news = g.news.slice(0,50);
+
+  g.week++;
+  let endedSeason=false;
+  if(g.week > g.seasonWeeks){ endSeason(); endedSeason=true; }
+
+  maybeTriggerEvent();
+
+  save(); render();
+}
+
+function maybeTriggerEvent(){
+  const g = state.game;
+  if(g.pendingEvent) return;
+  const riskFactor = 0.9 + (g.chairman.riskTolerance/100)*0.3;
+  if(Math.random() > 0.24*riskFactor) return;
+  const ev = EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  if(ev.auto){
+    const result = ev.apply(g);
+    g.news.unshift({wk:g.week, text:`${ev.title}: ${ev.text(g)}`, event:true});
+  } else {
+    g.pendingEvent = ev.id;
+  }
+}
+
+function resolveEvent(choiceIdx){
+  const g = state.game;
+  const ev = EVENTS.find(e=>e.id===g.pendingEvent);
+  if(!ev) return;
+  const choice = ev.choices[choiceIdx];
+  const resultText = choice.apply(g);
+  g.news.unshift({wk:g.week, text:`${ev.title}: ${resultText}`, event:true});
+  g.pendingEvent = null;
+  save(); render();
+}
+
+function updateClubResult(c, gf, ga){
+  c.matchesPlayed=(c.matchesPlayed||0)+1; c.gf=(c.gf||0)+gf; c.ga=(c.ga||0)+ga;
+  if(gf>ga){ c.wins=(c.wins||0)+1; c.points=(c.points||0)+3; c.form=[...(c.form||[]),'W'].slice(-5); }
+  else if(gf<ga){ c.losses=(c.losses||0)+1; c.form=[...(c.form||[]),'L'].slice(-5); }
+  else { c.draws=(c.draws||0)+1; c.points=(c.points||0)+1; c.form=[...(c.form||[]),'D'].slice(-5); }
+}
+function computeAttendance(isDerby){
+  const g = state.game, capacity = totalCapacity();
+  const demand = g.club.supporters*(0.55+(g.club.reputation/200))*(isDerby?1.5:1)*(16/(g.club.ticketPrice+4));
+  return Math.max(50, Math.min(capacity, Math.round(demand)));
+}
+function totalCapacity(){
+  const s = state.game.club.stands;
+  return STAND_TIERS[s.north].cap+STAND_TIERS[s.south].cap+STAND_TIERS[s.east].cap+STAND_TIERS[s.west].cap;
+}
+function weeklyFinance(){
+  const g = state.game;
+  const sponsorship = Math.round((200+g.club.reputation*8)*(1+(g.club.sponsorBonus||0)));
+  const merch = Math.round(g.club.supporters*0.4);
+  const propertyIncome = cityIncome();
+  const wages = Math.round((g.club.playerQuality*40)+(g.club.staffQuality*15));
+  const maintenance = Math.round(totalCapacity()*0.35);
+  const debtInterest = Math.round(g.club.debt*0.002);
+  const income = sponsorship+merch+propertyIncome;
+  const expenses = wages+maintenance+debtInterest;
+  return {income:Math.round(income), expenses:Math.round(expenses), net:Math.round(income-expenses),
+    sponsorship, merch, propertyIncome, wages, maintenance, debtInterest};
+}
+function cityIncome(){
+  const g = state.game; let total=0;
+  for(let y=0;y<g.cityGridSize;y++) for(let x=0;x<g.cityGridSize;x++){
+    const def = CITY_TILE_TYPES[g.cityGrid[y][x]]; if(def && def.income) total+=def.income;
+  }
+  return total;
+}
+function tickTown(){
+  const g = state.game;
+  let pop=0, traffic=0, reputationBoost=0;
+  for(let y=0;y<g.cityGridSize;y++) for(let x=0;x<g.cityGridSize;x++){
+    const def = CITY_TILE_TYPES[g.cityGrid[y][x]];
+    if(def){ pop+=(def.popEffect||0); traffic+=(def.trafficEffect||0); reputationBoost+=(def.reputation||0); }
+  }
+  g.townStats.population += pop*3+Math.round(g.club.reputation*0.3);
+  g.townStats.traffic = Math.max(0,Math.min(100,g.townStats.traffic+traffic));
+  g.townStats.happiness = Math.max(0,Math.min(100,g.townStats.happiness+(reputationBoost*0.5)-(g.townStats.traffic>70?1:0)));
+  if(g.townStats.traffic>80 && Math.random()<0.2){
+    g.news.unshift({wk:g.week, text:`Local residents raise concerns about matchday traffic congestion near ${g.town.name} — the council is watching closely.`});
+    g.club.reputation = Math.max(1, g.club.reputation-0.5);
+  }
+}
+function endSeason(){
+  const g = state.game;
+  const table = [{id:'player', name:g.club.name+' (You)', points:g.club.points, gf:g.club.gf, ga:g.club.ga},
+    ...g.league.map(c=>({id:c.id,name:c.name,points:c.points||0,gf:c.gf||0,ga:c.ga||0}))]
+    .sort((a,b)=> b.points-a.points || (b.gf-b.ga)-(a.gf-a.ga));
+  const playerPos = table.findIndex(r=>r.id==='player')+1;
+  let msg = `Season ${g.season} ends. ${g.club.name} finish ${ordinal(playerPos)} in ${TIERS[g.club.tier]} with ${g.club.points} points.`;
+  if(playerPos<=2 && g.club.tier<TIERS.length-1){ g.club.tier++; msg+=` Promoted to ${TIERS[g.club.tier]}!`; g.club.reputation=Math.min(100,g.club.reputation+8); }
+  else if(playerPos>=8 && g.club.tier>0){ g.club.tier--; msg+=` Relegated to ${TIERS[g.club.tier]}.`; g.club.reputation=Math.max(1,g.club.reputation-6); }
+  g.news.unshift({wk:g.week, text:msg});
+
+  g.season++; g.week=1;
+  g.club.matchesPlayed=0; g.club.wins=0; g.club.draws=0; g.club.losses=0; g.club.points=0; g.club.gf=0; g.club.ga=0; g.club.form=[];
+  let leagueClubs = g.allRivals.filter(r=>r.tier===g.club.tier);
+  let genCount=0;
+  while(leagueClubs.length<9){
+    genCount++;
+    leagueClubs.push({id:'gen-'+g.club.tier+'-'+g.season+'-'+genCount,
+      name: GENERIC_NAMES[(genCount+g.club.tier*3)%GENERIC_NAMES.length],
+      townId:null, distance:9999, tier:g.club.tier,
+      reputation: Math.max(5, Math.round(g.club.reputation+(Math.random()*30-15))),
+      playerQuality: Math.max(10, Math.round(g.club.playerQuality+(Math.random()*20-10))),
+      form:[], rivalryScore:5, matchesPlayed:0});
+  }
+  g.league = leagueClubs.slice(0,9).map(c=>({...c, points:0, gf:0, ga:0, wins:0, draws:0, losses:0, matchesPlayed:0}));
+  g.fixtures = buildFixtures(g.league);
+}
+function ordinal(n){ const s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+
+/* ---------------- Persistence ---------------- */
+
+async function save(){
+  try{
+    const payload = JSON.stringify(state);
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(STORAGE_KEY, payload, false);
+    }else{
+      localStorage.setItem(STORAGE_KEY, payload);
+    }
+  }catch(e){ console.warn('save failed', e); }
+}
+async function loadSave(){
+  try{
+    let value = null;
+    if(window.storage && typeof window.storage.get === 'function'){
+      const r = await window.storage.get(STORAGE_KEY, false);
+      value = r && r.value ? r.value : null;
+    }else{
+      value = localStorage.getItem(STORAGE_KEY);
+    }
+    if(value){
+      const parsed = JSON.parse(value);
+      if(parsed && typeof parsed === 'object' && parsed.club && parsed.chairman){
+        state = parsed;
+        return true;
+      }
+    }
+  }catch(e){
+    console.warn('load save failed, starting a new game', e);
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
+  }
+  return false;
+}
+async function resetGame(){
+  try{
+    if(window.storage && typeof window.storage.delete === 'function'){
+      await window.storage.delete(STORAGE_KEY, false);
+    }else{
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }catch(e){}
+  state = freshState(); render();
+}
+
+/* ---------------- DOM helpers ---------------- */
+function el(html){
+  html = html.trim();
+  const m = html.match(/^<(\w+)/);
+  const tag = m ? m[1].toLowerCase() : null;
+  let container;
+  if(tag==='tr') container = document.createElement('tbody');
+  else if(tag==='td' || tag==='th') container = document.createElement('tr');
+  else if(tag==='option') container = document.createElement('select');
+  else container = document.createElement('div');
+  container.innerHTML = html;
+  return container.firstElementChild;
+}
+function $(sel,root){ return (root||document).querySelector(sel); }
+function $all(sel,root){ return Array.from((root||document).querySelectorAll(sel)); }
+function svgIcon(path,viewBox){ return `<svg viewBox="${viewBox||'0 0 24 24'}"><path d="${path}"/></svg>`; }
+
+/* ---------------- Background music (self-contained synth ambient loop) ---------------- */
+let audioCtx = null, musicNodes = null;
+function toggleMusic(){
+  state.musicOn = !state.musicOn;
+  if(state.musicOn) startMusic(); else stopMusic();
+}
+function startMusic(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    stopMusic();
+    const master = audioCtx.createGain(); master.gain.value = 0.05; master.connect(audioCtx.destination);
+    const chords = [[130.81,164.81,196.00],[146.83,174.61,220.00],[110.00,146.83,174.61],[130.81,164.81,196.00]];
+    let chordIdx = 0;
+    function playChord(){
+      const now = audioCtx.currentTime;
+      chords[chordIdx%chords.length].forEach((freq)=>{
+        const osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value=freq;
+        const g = audioCtx.createGain(); g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.6, now+1.5);
+        g.gain.linearRampToValueAtTime(0, now+7.5);
+        osc.connect(g); g.connect(master);
+        osc.start(now); osc.stop(now+8);
+      });
+      chordIdx++;
+    }
+    playChord();
+    const interval = setInterval(playChord, 8000);
+    musicNodes = {master, interval};
+  }catch(e){ console.warn('Music unavailable:', e); state.musicOn=false; }
+}
+function stopMusic(){
+  if(musicNodes){ clearInterval(musicNodes.interval); try{ musicNodes.master.disconnect(); }catch(e){} musicNodes=null; }
+}
+function musicToggleHtml(){
+  return `<button type="button" id="music-toggle" class="music-toggle ${state.musicOn?'on':''}" aria-pressed="${state.musicOn}" aria-label="${state.musicOn?'Mute background music':'Play background music'}">
+    ${state.musicOn
+      ? '<svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 18a3 3 0 11-6 0 3 3 0 016 0zm10-2a3 3 0 11-6 0 3 3 0 016 0z"/></svg>'
+      : '<svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 18a3 3 0 11-6 0 3 3 0 016 0zm10-2a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18"/></svg>'}
+  </button>`;
+}
+function bindMusicToggle(){
+  $('#music-toggle')?.addEventListener('click', ()=>{ toggleMusic(); render(); });
+}
+
+const NAV_ICONS = {
+  overview: 'M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z',
+  football: 'M12 2a10 10 0 100 20 10 10 0 000-20zm0 3l2.5 1.8-1 3H10.5l-1-3zM4.5 9l3 .9.6 3-2 2.4L4 15zm15 0l1 5.3-2.1.3-2-2.4.6-3zM8 18.5l1.2-3H14.8l1.2 3-2 1.5h-4z',
+  stadium: 'M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6',
+  city: 'M3 21V9l4-2v14M7 21V5l5-3v19M12 21V11l4-2v12M16 21V7l5 2v12',
+  academy: 'M12 3l9 4-9 4-9-4 9-4zM7 10.5V16c0 1 2.5 3 5 3s5-2 5-3v-5.5',
+  finances: 'M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
+  staff: 'M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
+  rivals: 'M6.5 2L2 6.5 8 13l1.5-1.5M17.5 2L22 6.5 16 13l-1.5-1.5M9 13l-5 8h4l1-3 1 3h4l-5-8',
+  chairman: 'M12 12a5 5 0 100-10 5 5 0 000 10zM3 22c0-4 4-7 9-7s9 3 9 7',
+  social: 'M18 9a3 3 0 100-6 3 3 0 000 6zM6 15a3 3 0 100-6 3 3 0 000 6zM18 21a3 3 0 100-6 3 3 0 000 6zM8.5 13.5l7-4M8.5 10.5l7 4'
+};
+const NAV_ITEMS = [
+  ['overview','Overview'], ['football','Football'], ['stadium','Stadium'],
+  ['city','City'], ['academy','Academy'], ['finances','Finances'],
+  ['staff','Staff'], ['rivals','Rivals'], ['social','Social'], ['chairman','Chairman']
+];
+
+/* ---------------- Club colour theming ---------------- */
+
+function hexToRgb(hex){
+  if(!hex) return [255,122,41];
+  let m = hex.replace('#','');
+  if(m.length===3) m = m.split('').map(ch=>ch+ch).join('');
+  const n = parseInt(m,16);
+  if(isNaN(n)) return [255,122,41];
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function mixWithWhite(hex, amt){
+  const [r,g,b] = hexToRgb(hex);
+  const nr = Math.round(r+(255-r)*amt), ng = Math.round(g+(255-g)*amt), nb = Math.round(b+(255-b)*amt);
+  return `rgb(${nr},${ng},${nb})`;
+}
+function relativeLuminance(hex){
+  const [r,g,b] = hexToRgb(hex).map(v=>v/255);
+  return 0.2126*r + 0.7152*g + 0.0722*b;
+}
+function applyClubTheme(){
+  const c = state && state.club;
+  if(!c || !c.primary) return;
+  const root = document.documentElement.style;
+  const [r,g,b] = hexToRgb(c.primary);
+  root.setProperty('--accent', c.primary);
+  root.setProperty('--accent-light', mixWithWhite(c.primary, 0.4));
+  root.setProperty('--accent-rgb', `${r},${g},${b}`);
+  root.setProperty('--accent-ink', relativeLuminance(c.primary) > 0.5 ? '#14181f' : '#fdfdfd');
+  if(c.secondary) root.setProperty('--accent2', c.secondary);
+}
+
+/* ---------------- Render dispatcher ---------------- */
+
+function render(){
+  const app = document.getElementById('app');
+  if(!app) return;
+  try{
+    if(leafletMapInstance){ try{ leafletMapInstance.remove(); }catch(e){} leafletMapInstance=null; }
+    app.innerHTML='';
+    if(!state) state=freshState();
+    applyClubTheme();
+    app.appendChild(el(`<a href="#main-content" class="skip-link">Skip to main content</a>`));
+    if(state.screen==='onboard') app.appendChild(renderOnboard());
+    else if(state.game) app.appendChild(renderDashboard());
+    else { state.screen='onboard'; app.appendChild(renderOnboard()); }
+  }catch(err){
+    console.error('Chairman & City render error:', err);
+    app.innerHTML = `<div class="onboard-wrap">
+      <div class="panel" style="border-left-color:var(--bad);">
+        <h3 style="color:var(--bad);">Game failed to render</h3>
+        <p style="color:var(--text-dim);line-height:1.6;">
+          Chairman &amp; City hit a startup error. Your game data has been kept where possible.
+          Click below to restart the setup.
+        </p>
+        <button id="fatal-reset">Restart Game</button>
+        <details style="margin-top:16px;">
+          <summary class="muted">Technical details</summary>
+          <pre style="white-space:pre-wrap;color:var(--text-dim);font-size:11px;margin-top:10px;">${String(err && err.stack || err)}</pre>
+        </details>
+      </div>
+    </div>`;
+    document.getElementById('fatal-reset')?.addEventListener('click', resetGame);
+  }
+}
+
+/* ================= Onboarding ================= */
+function renderOnboard(){
+  const c = state.club, ch = state.chairman;
+  if(state.onboardStep===1){
+    return renderLocationWizard();
+  }
+  const totalSteps=5;
+  const wrap = el(`<div class="onboard-wrap" id="main-content">
+    <div class="hero" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div><div class="kicker">New Career · Step ${state.onboardStep} of ${totalSteps}</div>
+      <h1>Chairman &amp; City</h1>
+      <p>Your club's home is set — now build its identity, its chairman, and how the story begins.</p></div>
+      ${musicToggleHtml()}
+    </div>
+    <div class="step-indicator">${[1,2,3,4,5].map(n=>`<span class="${state.onboardStep>=n?'done':''}"></span>`).join('')}</div>
+  </div>`);
+
+  if(state.onboardStep===2){
+    wrap.appendChild(el(`
+      <div class="panel"><h3>Club Identity</h3>
+        <div class="row">
+          <div class="field"><label>Club Name</label><input id="f-name" value="${c.name}" placeholder="e.g. Ashfield Athletic"></div>
+          <div class="field"><label>Short Name</label><input id="f-short" value="${c.shortName}" placeholder="e.g. ASH" maxlength="4"></div>
+          <div class="field"><label>Nickname</label><input id="f-nick" value="${c.nickname}" placeholder="e.g. The Foresters"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Stadium Name</label><input id="f-stad" value="${c.stadiumName}" placeholder="e.g. Foundry Park"></div>
+          <div class="field"><label>Year Founded</label><input id="f-year" type="number" value="${c.founded}" min="1863" max="2026"></div>
+          <div class="field"><label>Club Motto</label><input id="f-motto" value="${c.motto}" placeholder="e.g. United We Rise"></div>
+        </div>
+        <div class="field"><label>Quick Colour Presets</label><div class="swatch-row" id="preset-swatches"></div></div>
+        <div class="row">
+          <div class="field"><label>Primary Colour</label>
+            <div class="swatch-row"><input type="color" id="f-primary" value="${c.primary}">
+            <div class="kit-preview">${kitSvg(c)}</div></div></div>
+          <div class="field"><label>Secondary Colour</label><input type="color" id="f-secondary" value="${c.secondary}"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Shorts Colour</label><input type="color" id="f-shorts" value="${c.shorts}"></div>
+          <div class="field"><label>Socks Colour</label><input type="color" id="f-socks" value="${c.socks}"></div>
+        </div>
+        <div class="field"><label>Kit Pattern</label><div class="choice-grid" id="kit-pattern-grid"></div></div>
+        <div class="row">
+          <div class="field"><label>Badge Shape</label><div class="choice-grid" id="badge-shape-grid"></div></div>
+          <div class="field"><label>Badge Emblem</label><div class="choice-grid" id="badge-icon-grid"></div></div>
+        </div>
+        <div class="field"><label>Badge Preview</label><div class="badge-preview">${badgeSvg(c)}</div></div>
+        <div style="text-align:right;margin-top:10px;display:flex;justify-content:space-between;">
+          <button class="ghost" id="back-step1">← Back to Location</button>
+          <button id="to-step3">Next: The Chairman →</button>
+        </div>
+      </div>
+    `));
+    const presetRow = $('#preset-swatches', wrap);
+    COLOUR_PRESETS.forEach(p=>{
+      const sw = el(`<div class="swatch-preset ${c.primary===p.primary&&c.secondary===p.secondary?'sel':''}" title="${p.name}" style="background:linear-gradient(135deg,${p.primary} 50%,${p.secondary} 50%)"></div>`);
+      sw.onclick=()=>{ c.primary=p.primary; c.secondary=p.secondary; render(); };
+      presetRow.appendChild(sw);
+    });
+    const kpGrid = $('#kit-pattern-grid', wrap);
+    KIT_PATTERNS.forEach(k=>{
+      const card = el(`<div class="choice-card ${c.kitPattern===k.id?'sel':''}"><h4>${k.label}</h4></div>`);
+      card.onclick=()=>{ c.kitPattern=k.id; render(); }; kpGrid.appendChild(card);
+    });
+    const bsGrid = $('#badge-shape-grid', wrap);
+    BADGE_SHAPES.forEach(b=>{
+      const card = el(`<div class="choice-card ${c.badgeShape===b.id?'sel':''}"><h4>${b.label}</h4></div>`);
+      card.onclick=()=>{ c.badgeShape=b.id; render(); }; bsGrid.appendChild(card);
+    });
+    const biGrid = $('#badge-icon-grid', wrap);
+    Object.keys(BADGE_ICONS).forEach(k=>{
+      const card = el(`<div class="choice-card ${c.badgeIcon===k?'sel':''}"><h4>${k[0].toUpperCase()+k.slice(1)}</h4></div>`);
+      card.onclick=()=>{ c.badgeIcon=k; render(); }; biGrid.appendChild(card);
+    });
+  }
+
+  else if(state.onboardStep===3){
+    wrap.appendChild(el(`<div class="panel"><h3>The Chairman</h3>
+      <div class="chair-avatar-wrap">
+        <div id="avatar-holder"></div>
+        <div style="flex:1;">
+          <div class="row">
+            <div class="field"><label>Your Name</label><input id="ch-name" value="${ch.name}" placeholder="e.g. Pat Kowalski"></div>
+            <div class="field"><label>Age</label><input id="ch-age" type="number" min="21" max="85" value="${ch.age}"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Skin Tone</label><div class="swatch-row" id="skin-swatches"></div></div>
+            <div class="field"><label>Hair Colour</label><div class="swatch-row" id="hair-color-swatches"></div></div>
+            <div class="field"><label>Outfit Colour</label><input type="color" id="ch-suit" value="${ch.suitColor}"></div>
+          </div>
+          <div class="field"><label>Hairstyle</label><div class="choice-grid" id="hair-style-grid"></div></div>
+          <div class="field"><label>Outfit Style</label><div class="choice-grid" id="outfit-grid"></div></div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:16px;"><label>Background</label><div class="choice-grid" id="bg-grid"></div></div>
+      <div class="row" style="margin-top:6px;">
+        ${traitSliderHtml('ambition','Ambition',ch.ambition)}
+        ${traitSliderHtml('patience','Patience',ch.patience)}
+      </div>
+      <div class="row">
+        ${traitSliderHtml('riskTolerance','Risk Tolerance',ch.riskTolerance)}
+        ${traitSliderHtml('fanFocus','Fan Focus',ch.fanFocus)}
+      </div>
+      <div class="row">${traitSliderHtml('financialPrudence','Financial Prudence',ch.financialPrudence)}</div>
+      <div class="field"><label>Chairman's Motto (optional)</label><input id="ch-quote" value="${ch.quote}" placeholder="e.g. Patience wins leagues."></div>
+      <div style="text-align:right;margin-top:10px;display:flex;justify-content:space-between;">
+        <button class="ghost" id="back-step2">← Back</button>
+        <button id="to-step4">Next: Starting Mode →</button>
+      </div>
+    </div>`));
+    $('#avatar-holder', wrap).appendChild(el(avatarSvg(ch,140)));
+    const skinRow = $('#skin-swatches', wrap);
+    SKIN_TONES.forEach(tone=>{
+      const sw = el(`<div style="width:26px;height:26px;border-radius:50%;background:${tone};cursor:pointer;border:2px solid ${ch.skin===tone?'var(--accent)':'transparent'}"></div>`);
+      sw.onclick=()=>{ ch.skin=tone; render(); }; skinRow.appendChild(sw);
+    });
+    const hairColorRow = $('#hair-color-swatches', wrap);
+    HAIR_COLORS.forEach(hc=>{
+      const sw = el(`<div style="width:26px;height:26px;border-radius:50%;background:${hc};cursor:pointer;border:2px solid ${ch.hairColor===hc?'var(--accent)':'transparent'}"></div>`);
+      sw.onclick=()=>{ ch.hairColor=hc; render(); }; hairColorRow.appendChild(sw);
+    });
+    const hairStyleGrid = $('#hair-style-grid', wrap);
+    HAIR_STYLES.forEach(hs=>{
+      const card = el(`<div class="choice-card ${ch.hair===hs.id?'sel':''}"><h4>${hs.label}</h4></div>`);
+      card.onclick=()=>{ ch.hair=hs.id; render(); }; hairStyleGrid.appendChild(card);
+    });
+    const outfitGrid = $('#outfit-grid', wrap);
+    OUTFIT_TYPES.forEach(ot=>{
+      const card = el(`<div class="choice-card ${ch.outfit===ot.id?'sel':''}"><h4>${ot.label}</h4></div>`);
+      card.onclick=()=>{ ch.outfit=ot.id; render(); }; outfitGrid.appendChild(card);
+    });
+    const bgGrid = $('#bg-grid', wrap);
+    CHAIR_BACKGROUNDS.forEach(b=>{
+      const card = el(`<div class="choice-card ${ch.background===b.id?'sel':''}"><h4>${b.label}</h4><p>${b.desc}</p></div>`);
+      card.onclick=()=>{ ch.background=b.id; render(); }; bgGrid.appendChild(card);
+    });
+  }
+
+  else if(state.onboardStep===4){
+    const modeGrid = el(`<div class="panel"><h3>Starting Mode</h3><div class="mode-grid"></div>
+      <label class="custom-toggle"><input type="checkbox" id="f-custom" ${c.custom?'checked':''}> Enable full custom stat editing</label>
+      <div id="custom-panel"></div>
+      <div style="text-align:right;margin-top:14px;display:flex;justify-content:space-between;">
+        <button class="ghost" id="back-step3">← Back</button>
+        <button id="to-step5">Next: Summary →</button>
+      </div>
+    </div>`);
+    const grid = $('.mode-grid', modeGrid);
+    Object.entries(GAME_MODES).forEach(([key,m])=>{
+      const card = el(`<div class="mode-card ${c.mode===key?'sel':''}" data-mode="${key}"><h4>${m.label}</h4><p>${m.desc}</p></div>`);
+      card.onclick=()=>{ c.mode=key; render(); }; grid.appendChild(card);
+    });
+    wrap.appendChild(modeGrid);
+    if(c.custom){
+      const cp = $('#custom-panel', modeGrid); const cs = state.customStats;
+      [['cash','Starting Cash (£)',0,3000000,10000],['reputation','Reputation',1,100,1],
+       ['supporters','Supporters',10,10000,10],['playerQuality','Player Quality',5,90,1],
+       ['academyQuality','Academy Quality',5,90,1],['staffQuality','Staff Quality',5,90,1],
+       ['debt','Starting Debt (£)',0,500000,5000],['tier','Starting League Tier',0,TIERS.length-1,1]
+      ].forEach(([key,label,min,max,step])=>{
+        const displayVal = key==='tier'?TIERS[cs[key]]:cs[key];
+        const s = el(`<div class="slider-field"><label>${label} <span class="val">${displayVal}</span></label>
+          <input type="range" min="${min}" max="${max}" step="${step}" value="${cs[key]}" data-key="${key}"></div>`);
+        s.querySelector('input').oninput=(e)=>{ cs[key]=Number(e.target.value); render(); };
+        cp.appendChild(s);
+      });
+    }
+  }
+
+  else if(state.onboardStep===5){
+    const town = TOWN_DATA.find(t=>t.id===state.selectedTownId);
+    const cty = town && COUNTIES.find(x=>x.id===town.countyId);
+    wrap.appendChild(el(`<div class="panel"><h3>Summary</h3>
+      <div class="grid-2">
+        <div>
+          <div class="stat-line"><span>Club</span><b>${c.name||'(unnamed)'} "${c.nickname||''}"</b></div>
+          <div class="stat-line"><span>Founded</span><b>${c.founded}</b></div>
+          <div class="stat-line"><span>Home Town</span><b>${town?town.name:'—'}${cty?', '+cty.name:''}</b></div>
+          <div class="stat-line"><span>Stadium</span><b>${c.stadiumName||'(unnamed)'}${state.finalSite?' — '+state.finalSite.parkName:''}</b></div>
+          <div class="stat-line"><span>Mode</span><b>${c.custom?'Fully Custom':GAME_MODES[c.mode].label}</b></div>
+          <div class="stat-line"><span>Chairman</span><b>${ch.name||'(unnamed)'}, ${ch.age}</b></div>
+          <div class="stat-line"><span>Background</span><b>${(CHAIR_BACKGROUNDS.find(b=>b.id===ch.background)||{}).label}</b></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div class="badge-preview">${badgeSvg(c)}</div>
+          ${avatarSvg(ch,90)}
+        </div>
+      </div>
+      <p class="muted" style="margin-top:12px;">Everything checks out — kick off your first season whenever you're ready.</p>
+      <div style="text-align:right;display:flex;justify-content:space-between;">
+        <button class="ghost" id="back-step4">← Back</button>
+        <button id="start-career">Start Career →</button>
+      </div>
+    </div>`));
+  }
+
+  setTimeout(()=>{
+    bindMusicToggle();
+    if(state.onboardStep===2){
+      $('#f-name')?.addEventListener('input', e=>c.name=e.target.value);
+      $('#f-short')?.addEventListener('input', e=>c.shortName=e.target.value.toUpperCase());
+      $('#f-nick')?.addEventListener('input', e=>c.nickname=e.target.value);
+      $('#f-stad')?.addEventListener('input', e=>c.stadiumName=e.target.value);
+      $('#f-year')?.addEventListener('input', e=>c.founded=Number(e.target.value));
+      $('#f-motto')?.addEventListener('input', e=>c.motto=e.target.value);
+      $('#f-primary')?.addEventListener('input', e=>{c.primary=e.target.value; render();});
+      $('#f-secondary')?.addEventListener('input', e=>{c.secondary=e.target.value; render();});
+      $('#f-shorts')?.addEventListener('input', e=>{c.shorts=e.target.value; render();});
+      $('#f-socks')?.addEventListener('input', e=>{c.socks=e.target.value; render();});
+      $('#back-step1')?.addEventListener('click', ()=>{ state.onboardStep=1; render(); });
+      $('#to-step3')?.addEventListener('click', ()=>{ if(!c.name){ alert('Give your club a name first.'); return; } state.onboardStep=3; render(); });
+    }
+    if(state.onboardStep===3){
+      $('#ch-name')?.addEventListener('input', e=>ch.name=e.target.value);
+      $('#ch-age')?.addEventListener('input', e=>ch.age=Number(e.target.value));
+      $('#ch-suit')?.addEventListener('input', e=>{ch.suitColor=e.target.value; render();});
+      $('#ch-quote')?.addEventListener('input', e=>ch.quote=e.target.value);
+      $all('.slider-field input', wrap).forEach(inp=>{
+        inp.addEventListener('input', e=>{ ch[inp.dataset.trait]=Number(e.target.value); render(); });
+      });
+      $('#back-step2')?.addEventListener('click', ()=>{ state.onboardStep=2; render(); });
+      $('#to-step4')?.addEventListener('click', ()=>{ state.onboardStep=4; render(); });
+    }
+    if(state.onboardStep===4){
+      $('#f-custom')?.addEventListener('change', e=>{ c.custom=e.target.checked; render(); });
+      $('#back-step3')?.addEventListener('click', ()=>{ state.onboardStep=3; render(); });
+      $('#to-step5')?.addEventListener('click', ()=>{ state.onboardStep=5; render(); });
+    }
+    if(state.onboardStep===5){
+      $('#back-step4')?.addEventListener('click', ()=>{ state.onboardStep=4; render(); });
+      $('#start-career')?.addEventListener('click', ()=>{ startGame(); });
+    }
+  },0);
+
+  return wrap;
+}
+
+function traitSliderHtml(key,label,val){
+  return `<div class="field slider-field"><label>${label} <span class="val">${val}</span></label>
+    <input type="range" min="0" max="100" data-trait="${key}" value="${val}"></div>`;
+}
+
+function kitSvg(c){
+  let pattern='';
+  if(c.kitPattern==='hoops') pattern=`<div class="pattern" style="background:repeating-linear-gradient(0deg,${c.secondary} 0 10px,transparent 10px 20px)"></div>`;
+  else if(c.kitPattern==='stripes') pattern=`<div class="pattern" style="background:repeating-linear-gradient(90deg,${c.secondary} 0 8px,transparent 8px 16px)"></div>`;
+  else if(c.kitPattern==='sash') pattern=`<div class="pattern" style="background:linear-gradient(135deg,transparent 40%,${c.secondary} 40% 55%,transparent 55%)"></div>`;
+  else if(c.kitPattern==='halves') pattern=`<div class="pattern" style="background:linear-gradient(90deg,${c.secondary} 50%,transparent 50%)"></div>`;
+  else if(c.kitPattern==='checkered') pattern=`<div class="pattern" style="background-image:linear-gradient(45deg,${c.secondary} 25%,transparent 25%,transparent 75%,${c.secondary} 75%),linear-gradient(45deg,${c.secondary} 25%,transparent 25%,transparent 75%,${c.secondary} 75%);background-size:14px 14px;background-position:0 0,7px 7px;"></div>`;
+  return `<div class="body" style="background:${c.primary}"></div>${pattern}`;
+}
+const BADGE_SHAPE_PATHS = {
+  shield:'M32 4 L58 14 V34 C58 50 46 60 32 62 C18 60 6 50 6 34 V14 Z',
+  circle:'M32 4a28 28 0 100 56 28 28 0 000-56z',
+  hexagon:'M32 3 L58 18 V46 L32 61 L6 46 V18 Z',
+  diamond:'M32 3 L61 32 L32 61 L3 32 Z',
+  star:'M32 2 L40 22 L62 22 L44 35 L51 58 L32 45 L13 58 L20 35 L2 22 L24 22 Z',
+  oval:'M32 4 C50 4 58 16 58 32 C58 48 50 60 32 60 C14 60 6 48 6 32 C6 16 14 4 32 4 Z'
+};
+function badgeSvg(c){
+  const shapePath = BADGE_SHAPE_PATHS[c.badgeShape] || BADGE_SHAPE_PATHS.shield;
+  const iconPath = BADGE_ICONS[c.badgeIcon] || BADGE_ICONS.star;
+  return `<svg width="74" height="74" viewBox="0 0 64 64">
+    <path d="${shapePath}" fill="${c.primary}" stroke="${c.secondary}" stroke-width="2.5"/>
+    <g transform="translate(20,20) scale(0.9)"><path d="${iconPath}" fill="${c.secondary}"/></g>
+  </svg>`;
+}
+const HAIR_PATHS = {
+  bald:'',
+  short:'M20 32 Q32 8 44 32 L44 24 Q32 14 20 24 Z',
+  long:'M18 34 Q18 8 32 8 Q46 8 46 34 L42 34 Q42 16 32 16 Q22 16 22 34 Z',
+  quiff:'M18 26 Q20 6 34 6 Q46 8 44 22 Q40 12 32 14 Q36 6 26 8 Q16 10 18 26 Z',
+  curly:'M16 28 Q12 12 22 10 Q22 4 32 6 Q42 4 42 10 Q52 12 48 28 Q46 18 40 20 Q38 12 32 14 Q26 12 24 20 Q18 18 16 28 Z',
+  bun:'M20 30 Q20 8 32 8 Q44 8 44 30 L40 30 Q40 14 32 14 Q24 14 24 30 Z M28 4a5 5 0 108 0 5 5 0 00-8 0z',
+  mohawk:'M28 4 L36 4 L35 24 L29 24 Z',
+  afro:'M32 4a20 20 0 100 40 20 20 0 000-40zM32 10a14 14 0 100 28 14 14 0 000-28z'
+};
+const OUTFIT_RENDER = {
+  suit:(ch)=>`<path d="M12 58 C12 44 20 38 32 38 C44 38 52 44 52 58 Z" fill="${ch.suitColor}"/>
+    <path d="M28 39 L32 48 L36 39 L34 38 L32 42 L30 38 Z" fill="#EDEFF4"/>
+    <path d="M30 40 L32 58 L34 40 Z" fill="${ch.hairColor}" opacity="0.85"/>`,
+  tracksuit:(ch)=>`<path d="M12 58 C12 44 20 38 32 38 C44 38 52 44 52 58 Z" fill="${ch.suitColor}"/>
+    <path d="M14 46 L20 58 M50 46 L44 58" stroke="#EDEFF4" stroke-width="3" fill="none"/>
+    <circle cx="32" cy="41" r="3" fill="#EDEFF4"/>`,
+  blazer:(ch)=>`<path d="M12 58 C12 44 20 38 32 38 C44 38 52 44 52 58 Z" fill="${ch.suitColor}"/>
+    <path d="M22 40 Q32 48 42 40 L44 58 L20 58 Z" fill="var(--gold)"/>`,
+  polo:(ch)=>`<path d="M12 58 C12 44 20 38 32 38 C44 38 52 44 52 58 Z" fill="${ch.suitColor}"/>
+    <path d="M27 39 L32 43 L37 39" stroke="#EDEFF4" stroke-width="2" fill="none"/>`
+};
+function avatarSvg(ch,size){
+  const outfit = OUTFIT_RENDER[ch.outfit] || OUTFIT_RENDER.suit;
+  return `<svg class="avatar-svg" width="${size}" height="${size}" viewBox="0 0 64 64">
+    <rect width="64" height="64" fill="var(--panel2)"/>
+    ${outfit(ch)}
+    <circle cx="32" cy="26" r="14" fill="${ch.skin}"/>
+    <path d="${HAIR_PATHS[ch.hair]||''}" fill="${ch.hairColor}"/>
+  </svg>`;
+}
+
+/* ================= Location: country / county / town / site ================= */
+
+/* Shared satellite map initialiser. Always returns synchronously (never throws) so
+   that button bindings elsewhere are never skipped just because the map failed to load —
+   this was the cause of players getting stuck unable to advance past a location screen. */
+function initSatelliteMap(elId, center, zoom, onClick){
+  const mapEl = document.getElementById(elId);
+  if(!mapEl) return null;
+  if(typeof L==='undefined'){
+    mapEl.innerHTML = '<div style="padding:20px;color:#8C94A6;">Satellite imagery unavailable right now — you can still use the list below.</div>';
+    return null;
+  }
+  try{
+    const map = L.map(elId,{scrollWheelZoom:true}).setView(center, zoom);
+    leafletMapInstance = map;
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {attribution:'Tiles &copy; Esri', maxZoom:19}).addTo(map);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {maxZoom:19, opacity:0.9}).addTo(map);
+    if(onClick) map.on('click', onClick);
+    return map;
+  }catch(e){
+    console.error('Map init failed:', e);
+    mapEl.innerHTML = '<div style="padding:20px;color:#8C94A6;">Satellite imagery unavailable right now — you can still use the list below.</div>';
+    return null;
+  }
+}
+
+function renderLocationWizard(){
+  const level = state.locationLevel;
+  const wrap = el(`<div class="map-shell" id="main-content">
+    <div class="hero" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div><div class="kicker">Step 1 of 5</div>
+      <h1 style="font-size:28px;">Find Your Club a Home</h1>
+      <p>Drill down from country to county${level!=='country'?' to borough/town':''} to the exact park your ground will stand on. Every step shapes your club's story.</p></div>
+      ${musicToggleHtml()}
+    </div>
+    <nav class="breadcrumb" id="crumb" aria-label="Location breadcrumb"></nav>
+    <div id="loc-body"></div>
+  </div>`);
+
+  const crumb = $('#crumb', wrap);
+  crumb.appendChild(el(`<b data-go="country" tabindex="0" role="button">England &amp; Scotland</b>`));
+  if(state.selectedCountyId){
+    crumb.appendChild(el(`<span class="sep">›</span>`));
+    const county = COUNTIES.find(c=>c.id===state.selectedCountyId);
+    crumb.appendChild(el(`<b data-go="county" tabindex="0" role="button">${county.name}</b>`));
+  }
+  if(state.selectedBoroughId){
+    crumb.appendChild(el(`<span class="sep">›</span>`));
+    const borough = LONDON_BOROUGHS.find(b=>b.id===state.selectedBoroughId);
+    crumb.appendChild(el(`<b data-go="borough" tabindex="0" role="button">${borough.name}</b>`));
+  }
+  if(state.selectedTownId){
+    crumb.appendChild(el(`<span class="sep">›</span>`));
+    const town = TOWN_DATA.find(t=>t.id===state.selectedTownId);
+    crumb.appendChild(el(`<b data-go="town" tabindex="0" role="button">${town.name}</b>`));
+  }
+  if(level==='site'){
+    crumb.appendChild(el(`<span class="sep">›</span><b style="color:var(--text-dim);cursor:default;">Choose a Site</b>`));
+  }
+  if(level==='park'){
+    crumb.appendChild(el(`<span class="sep">›</span><b data-go="site" tabindex="0" role="button">Choose a Site</b><span class="sep">›</span><b style="color:var(--text-dim);cursor:default;">Choose a Park</b>`));
+  }
+
+  const body = $('#loc-body', wrap);
+  if(level==='country') body.appendChild(renderCountryLevel());
+  else if(level==='county') body.appendChild(renderCountyLevel());
+  else if(level==='borough') body.appendChild(renderBoroughLevel());
+  else if(level==='town') body.appendChild(renderTownLevel());
+  else if(level==='site') body.appendChild(renderSiteLevel());
+  else if(level==='park') body.appendChild(renderParkLevel());
+
+  // "map behind the map": small UK-wide locator inset pinned over the corner of the main map,
+  // so you always keep national context while drilling into local detail.
+  let focus = COUNTRY_VIEW.center;
+  const cty0 = COUNTIES.find(c=>c.id===state.selectedCountyId);
+  const town0 = TOWN_DATA.find(t=>t.id===state.selectedTownId);
+  const bor0 = LONDON_BOROUGHS.find(b=>b.id===state.selectedBoroughId);
+  if(town0) focus=[town0.lat,town0.lng]; else if(bor0) focus=bor0.center; else if(cty0) focus=cty0.center;
+  const mapCol = body.querySelector('.map-col');
+  if(mapCol && level!=='country') mapCol.appendChild(renderLocatorInset(focus));
+
+  setTimeout(()=>{
+    bindMusicToggle();
+    $all('[data-go]', wrap).forEach(b=>{
+      const activate = ()=>{
+        const go = b.getAttribute('data-go');
+        if(go==='country'){ state.locationLevel='country'; state.selectedCountyId=null; state.selectedBoroughId=null; state.selectedTownId=null; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; }
+        if(go==='county'){ state.locationLevel='county'; state.selectedBoroughId=null; state.selectedTownId=null; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; }
+        if(go==='borough'){ state.locationLevel='borough'; state.selectedTownId=null; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; }
+        if(go==='town'){ state.locationLevel='town'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; }
+        if(go==='site'){ state.locationLevel='site'; state.selectedParkId=null; }
+        render();
+      };
+      b.addEventListener('click', activate);
+      b.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); activate(); } });
+    });
+  },0);
+  return wrap;
+}
+
+/* Small inset locator map showing the whole UK with a marker for the current focus point —
+   gives constant geographic context ("the map behind the map") while drilling into detail. */
+function renderLocatorInset(focusLatLng){
+  const holder = el(`<div class="locator-inset" id="locator-inset" aria-hidden="true"></div>`);
+  setTimeout(()=>{
+    if(typeof L==='undefined') return;
+    try{
+      const mini = L.map('locator-inset',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,touchZoom:false,keyboard:false})
+        .setView(COUNTRY_VIEW.center, COUNTRY_VIEW.zoom-1);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}).addTo(mini);
+      if(focusLatLng){
+        L.circleMarker(focusLatLng,{radius:6,color:'var(--accent)',fillColor:'var(--accent)',fillOpacity:1,weight:2}).addTo(mini);
+      }
+    }catch(e){ /* inset is decorative — fail silently */ }
+  },0);
+  return holder;
+}
+
+function renderCountryLevel(){
+  const wrap = el(`<div><div class="map-wrap">
+    <div class="map-col"><div id="leaflet-map" role="img" aria-label="Satellite map of the United Kingdom for choosing a county"></div></div>
+    <div class="side-panel" id="county-list" aria-label="County list" role="list"></div>
+    </div></div>`);
+  const list = $('#county-list', wrap);
+  const byCountry = {England:[], Scotland:[]};
+  COUNTIES.forEach(c=>byCountry[c.country].push(c));
+  Object.entries(byCountry).forEach(([country,list_])=>{
+    list.appendChild(el(`<div class="loc-section-label">${country} <span class="muted">(${list_.length} counties)</span></div>`));
+    list_.forEach(cty=>{
+      const count = TOWN_DATA.filter(t=>t.countyId===cty.id).length;
+      const chip = el(`<div class="loc-chip" role="listitem" tabindex="0"><div><div class="name">${cty.name}</div><div class="sub">${cty.hasBoroughs?LONDON_BOROUGHS.length+' boroughs':count+' towns/cities'}</div></div><span class="go-arrow">→</span></div>`);
+      const go = ()=>{ state.selectedCountyId=cty.id; state.locationLevel='county'; render(); };
+      chip.onclick=go;
+      chip.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+      list.appendChild(chip);
+    });
+  });
+  setTimeout(()=>{
+    const map = initSatelliteMap('leaflet-map', COUNTRY_VIEW.center, COUNTRY_VIEW.zoom);
+    if(!map) return;
+    COUNTIES.forEach(cty=>{
+      const count = TOWN_DATA.filter(t=>t.countyId===cty.id).length;
+      const marker = L.circleMarker(cty.center,{radius:9,color:'var(--accent)',fillColor:'var(--accent)',fillOpacity:0.85,weight:2}).addTo(map);
+      marker.bindTooltip(`<b>${cty.name}</b><br>${count} towns/cities`,{direction:'top'});
+      marker.on('click',()=>{ state.selectedCountyId=cty.id; state.locationLevel='county'; render(); });
+    });
+  },0);
+  return wrap;
+}
+
+function renderCountyLevel(){
+  const cty = COUNTIES.find(c=>c.id===state.selectedCountyId);
+  if(cty.hasBoroughs) return renderBoroughListLevel(cty);
+  const towns = TOWN_DATA.filter(t=>t.countyId===cty.id);
+  const wrap = el(`<div><div class="hero" style="margin-bottom:14px;"><h1 style="font-size:26px;">${cty.name}</h1>
+    <p>Click a town to view its profile and base your club there, or tap "Compare" to weigh a few side by side.</p></div>
+    <div class="map-wrap"><div class="map-col"><div id="leaflet-map" role="img" aria-label="Satellite map of ${cty.name}"></div></div><div class="side-panel" id="town-list" role="list"></div></div>
+    <div id="compare-zone"></div></div>`);
+  const list = $('#town-list', wrap);
+  towns.forEach(town=>{
+    const comparing = state.compareIds.includes(town.id);
+    const chip = el(`<div class="loc-chip" role="listitem" tabindex="0">
+      <div><div class="name">${town.name}</div><div class="sub">pop ${town.pop.toLocaleString()} · interest ${town.footballInterest}/100</div></div>
+      <div class="chip-actions"><button class="compare-btn ${comparing?'on':''}" data-compare="${town.id}" aria-pressed="${comparing}">${comparing?'✓ Comparing':'+ Compare'}</button><span class="go-arrow">→</span></div>
+    </div>`);
+    const go = (e)=>{
+      if(e && e.target && e.target.closest('[data-compare]')) return;
+      state.selectedTownId=town.id; state.locationLevel='town'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; render();
+    };
+    chip.addEventListener('click', go);
+    chip.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(e); } });
+    list.appendChild(chip);
+  });
+  setTimeout(()=>{
+    $all('[data-compare]', wrap).forEach(btn=>btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.getAttribute('data-compare');
+      if(state.compareIds.includes(id)) state.compareIds=state.compareIds.filter(x=>x!==id);
+      else state.compareIds=[...state.compareIds, id].slice(-3);
+      render();
+    }));
+    const map = initSatelliteMap('leaflet-map', cty.center, cty.zoom);
+    if(!map) return;
+    towns.forEach(town=>{
+      const marker = L.circleMarker([town.lat,town.lng],{radius:7,color:'var(--accent2)',fillColor:'var(--accent2)',fillOpacity:0.85,weight:2}).addTo(map);
+      marker.bindTooltip(`<b>${town.name}</b>`,{direction:'top'});
+      marker.on('click',()=>{ state.selectedTownId=town.id; state.locationLevel='town'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; render(); });
+    });
+  },0);
+
+  if(state.compareIds.length){
+    const cmp = $('#compare-zone', wrap);
+    const panel = el(`<div class="panel" style="margin-top:20px;"><h3>Compare Towns</h3><div class="compare-grid"></div></div>`);
+    const grid = $('.compare-grid', panel);
+    state.compareIds.forEach(id=>{
+      const town = TOWN_DATA.find(x=>x.id===id);
+      const box = el(`<div>
+        <h4 style="color:var(--accent-light);font-size:14px;margin-bottom:8px;">${town.name}</h4>
+        <div class="stat-line"><span>Population</span><b>${town.pop.toLocaleString()}</b></div>
+        <div class="stat-line"><span>Football interest</span><b>${town.footballInterest}/100</b></div>
+        <div class="stat-line"><span>Existing clubs nearby</span><b>${town.existingClubs}</b></div>
+        <div class="stat-line"><span>Transport</span><b>${town.transport}</b></div>
+        <div class="stat-line"><span>Available land</span><b>${town.land}</b></div>
+        <div class="stat-line"><span>Council attitude</span><b>${town.council}</b></div>
+        <p class="muted" style="margin-top:8px;">${town.history}</p>
+        <button style="margin-top:10px;width:100%;" data-choose="${town.id}">View &amp; Base Club Here</button>
+      </div>`);
+      grid.appendChild(box);
+    });
+    cmp.appendChild(panel);
+    setTimeout(()=>{
+      $all('[data-choose]', wrap).forEach(btn=>btn.addEventListener('click', ()=>{
+        state.selectedTownId = btn.getAttribute('data-choose'); state.locationLevel='town'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; render();
+      }));
+    },0);
+  }
+  return wrap;
+}
+
+function renderBoroughListLevel(cty){
+  const wrap = el(`<div><div class="hero" style="margin-bottom:14px;"><h1 style="font-size:26px;">${cty.name}</h1>
+    <p>London gets its own borough-by-borough view. Pick a borough to see its neighbourhoods.</p></div>
+    <div class="map-wrap"><div class="map-col"><div id="leaflet-map" role="img" aria-label="Satellite map of Greater London boroughs"></div></div>
+    <div class="side-panel" id="borough-list" role="list"></div></div></div>`);
+  const list = $('#borough-list', wrap);
+  LONDON_BOROUGHS.forEach(b=>{
+    const count = TOWN_DATA.filter(t=>t.boroughId===b.id).length;
+    const chip = el(`<div class="loc-chip" role="listitem" tabindex="0"><div><div class="name">${b.name}</div><div class="sub">${count} neighbourhoods</div></div><span class="go-arrow">→</span></div>`);
+    const go = ()=>{ state.selectedBoroughId=b.id; state.locationLevel='borough'; render(); };
+    chip.onclick=go;
+    chip.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+    list.appendChild(chip);
+  });
+  setTimeout(()=>{
+    const map = initSatelliteMap('leaflet-map', cty.center, cty.zoom);
+    if(!map) return;
+    LONDON_BOROUGHS.forEach(b=>{
+      const marker = L.circleMarker(b.center,{radius:7,color:'var(--accent2)',fillColor:'var(--accent2)',fillOpacity:0.85,weight:2}).addTo(map);
+      marker.bindTooltip(`<b>${b.name}</b>`,{direction:'top'});
+      marker.on('click',()=>{ state.selectedBoroughId=b.id; state.locationLevel='borough'; render(); });
+    });
+  },0);
+  return wrap;
+}
+
+function renderBoroughLevel(){
+  const borough = LONDON_BOROUGHS.find(b=>b.id===state.selectedBoroughId);
+  const towns = TOWN_DATA.filter(t=>t.boroughId===borough.id);
+  const wrap = el(`<div><div class="hero" style="margin-bottom:14px;"><h1 style="font-size:26px;">${borough.name}</h1>
+    <p>Choose the neighbourhood your club will represent.</p></div>
+    <div class="map-wrap"><div class="map-col"><div id="leaflet-map" role="img" aria-label="Satellite map of ${borough.name}"></div></div>
+    <div class="side-panel" id="neigh-list" role="list"></div></div></div>`);
+  const list = $('#neigh-list', wrap);
+  towns.forEach(town=>{
+    const chip = el(`<div class="loc-chip" role="listitem" tabindex="0"><div><div class="name">${town.name}</div><div class="sub">pop ${town.pop.toLocaleString()} · interest ${town.footballInterest}/100</div></div><span class="go-arrow">→</span></div>`);
+    const go = ()=>{ state.selectedTownId=town.id; state.locationLevel='town'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; render(); };
+    chip.onclick=go;
+    chip.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+    list.appendChild(chip);
+  });
+  setTimeout(()=>{
+    const map = initSatelliteMap('leaflet-map', borough.center, 13);
+    if(!map) return;
+    towns.forEach(town=>{
+      const marker = L.circleMarker([town.lat,town.lng],{radius:7,color:'var(--accent2)',fillColor:'var(--accent2)',fillOpacity:0.85,weight:2}).addTo(map);
+      marker.bindTooltip(`<b>${town.name}</b>`,{direction:'top'});
+      marker.on('click',()=>{ state.selectedTownId=town.id; state.locationLevel='town'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; render(); });
+    });
+  },0);
+  return wrap;
+}
+
+function renderTownLevel(){
+  const town = TOWN_DATA.find(t=>t.id===state.selectedTownId);
+  const wrap = el(`<div>
+    <div class="map-wrap">
+      <div class="map-col"><div id="leaflet-map" role="img" aria-label="Satellite map of ${town.name}"></div></div>
+      <div class="side-panel">
+        <div class="panel" style="margin-bottom:0;">
+          <h3>${town.name}</h3>
+          <div class="stat-line"><span>Population</span><b>${town.pop.toLocaleString()}</b></div>
+          <div class="stat-line"><span>Football interest</span><b>${town.footballInterest}/100</b></div>
+          <div class="stat-line"><span>Existing clubs nearby</span><b>${town.existingClubs}</b></div>
+          <div class="stat-line"><span>Potential supporters</span><b>${Math.round(town.pop*(town.footballInterest/100)*0.06).toLocaleString()}</b></div>
+          <div class="stat-line"><span>Transport</span><b>${town.transport}</b></div>
+          <div class="stat-line"><span>Available land</span><b>${town.land}</b></div>
+          <div class="stat-line"><span>Council attitude</span><b>${town.council}</b></div>
+          <p class="muted" style="margin-top:10px;">${town.history}</p>
+          <button style="margin-top:12px;width:100%;" id="pick-town">Base Club in ${town.name} →</button>
+        </div>
+      </div>
+    </div>
+  </div>`);
+  // Bind the critical navigation button unconditionally first, so the player can always
+  // proceed even if the satellite map itself fails to load (e.g. no network access).
+  setTimeout(()=>{
+    $('#pick-town', wrap)?.addEventListener('click', ()=>{ state.locationLevel='site'; state.selectedSiteId=null; state.customSite=null; state.selectedParkId=null; render(); });
+  },0);
+  setTimeout(()=>{
+    const map = initSatelliteMap('leaflet-map', [town.lat,town.lng], 13);
+    if(!map) return;
+    L.circleMarker([town.lat,town.lng],{radius:9,color:'var(--accent)',fillColor:'var(--accent)',fillOpacity:0.9,weight:2}).addTo(map)
+      .bindPopup(`<b>${town.name}</b>`).openPopup();
+  },0);
+  return wrap;
+}
+
+function renderSiteLevel(){
+  const town = TOWN_DATA.find(t=>t.id===state.selectedTownId);
+  const sites = sitesForTown(town);
+  const wrap = el(`<div>
+    <div class="hero" style="margin-bottom:14px;"><h1 style="font-size:26px;">Choose Your Stadium Site</h1>
+      <p>Satellite view of ${town.name}. Pick one of the plots below, or click anywhere on the map to drop your own pin — this shapes cost, transport and how far the stadium can eventually grow.</p></div>
+    <div class="map-wrap">
+      <div class="map-col"><div id="leaflet-map" role="img" aria-label="Satellite map of ${town.name} for placing a stadium site"></div></div>
+      <div class="side-panel">
+        <div class="map-hint">📍 <b>Click anywhere on the satellite map</b> to place a custom stadium site, or choose one of the pre-scouted plots below.</div>
+        <div id="site-list" role="list"></div>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:16px;"><button id="confirm-site" ${state.selectedSiteId?'':'disabled'}>Choose a Park in this Site →</button></div>
+  </div>`);
+
+  function renderSiteCards(){
+    const list = $('#site-list', wrap);
+    list.innerHTML='';
+    if(state.customSite){
+      const cs = state.customSite;
+      const card = el(`<div class="site-card custom" data-site="${cs.id}" role="listitem" tabindex="0">
+        <h4>📍 ${cs.name}</h4>
+        <p class="muted" style="margin-top:6px;">${cs.desc}</p>
+        <div class="tag-row"><span class="tag">${cs.kind}</span><span class="tag">Ceiling: ${STAND_TIERS[Math.min(STAND_TIERS.length-1,cs.ceiling+2)].name}</span></div>
+        <div class="stat-line" style="margin-top:8px;"><span>Acquisition cost</span><b>£${cs.cost.toLocaleString()}</b></div>
+        <div class="stat-line"><span>Transport</span><b>${cs.transport}</b></div>
+        <button class="ghost small" style="margin-top:8px;" id="remove-custom-site">Remove custom pin</button>
+      </div>`);
+      card.querySelector('#remove-custom-site').addEventListener('click',(e)=>{
+        e.stopPropagation(); state.customSite=null;
+        if(state.selectedSiteId==='custom') state.selectedSiteId=null;
+        render();
+      });
+      card.addEventListener('click',(e)=>{ if(e.target.closest('#remove-custom-site')) return; state.selectedSiteId=cs.id; render(); });
+      list.appendChild(card);
+    }
+    sites.forEach(site=>{
+      const card = el(`<div class="site-card" data-site="${site.id}" role="listitem" tabindex="0">
+        <h4>${site.name}</h4>
+        <p class="muted" style="margin-top:6px;">${site.desc}</p>
+        <div class="tag-row"><span class="tag">${site.kind}</span><span class="tag">Ceiling: ${STAND_TIERS[Math.min(STAND_TIERS.length-1,site.ceiling+2)].name}</span></div>
+        <div class="stat-line" style="margin-top:8px;"><span>Acquisition cost</span><b>£${site.cost.toLocaleString()}</b></div>
+        <div class="stat-line"><span>Transport</span><b>${site.transport}</b></div>
+      </div>`);
+      card.onclick=()=>{ state.selectedSiteId=site.id; render(); };
+      list.appendChild(card);
+    });
+    $all('.site-card', wrap).forEach(c=>c.classList.toggle('sel', c.getAttribute('data-site')===state.selectedSiteId));
+  }
+  renderSiteCards();
+
+  // Bind the critical navigation button unconditionally, independent of the map.
+  setTimeout(()=>{
+    $('#confirm-site', wrap)?.addEventListener('click', ()=>{ if(state.selectedSiteId){ state.locationLevel='park'; state.selectedParkId=null; render(); } });
+  },0);
+
+  setTimeout(()=>{
+    const map = initSatelliteMap('leaflet-map', [town.lat,town.lng], 14, (e)=>{
+      state.customSite = computeCustomSite(town, e.latlng.lat, e.latlng.lng);
+      state.selectedSiteId = 'custom';
+      render();
+    });
+    if(!map) return;
+    sites.forEach(site=>{
+      const marker = L.circleMarker([site.lat,site.lng],{radius:9,color:'var(--gold)',fillColor:'var(--gold)',fillOpacity:0.9,weight:2}).addTo(map);
+      marker.bindTooltip(site.name,{direction:'top'});
+      marker.on('click',(ev)=>{ L.DomEvent.stopPropagation(ev); state.selectedSiteId=site.id; render(); });
+      site._marker = marker;
+    });
+    if(state.customSite){
+      L.marker([state.customSite.lat,state.customSite.lng],{
+        icon:L.divIcon({className:'', html:'<div style="width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.4);"></div>', iconSize:[16,16], iconAnchor:[8,8]})
+      }).addTo(map).bindTooltip(state.customSite.name,{direction:'top'});
+    }
+  },0);
+
+  return wrap;
+}
+
+const PARK_NAME_PREFIXES = ['Meadow','Common','Green','Fields','Recreation Ground','Playing Fields','Park','Gardens','Sports Ground','Memorial Field'];
+function generateParksForSite(site, town){
+  const seed = site.id+town.id;
+  const count = 3;
+  const parks = [];
+  for(let i=0;i<count;i++){
+    const angle = (i/count)*2*Math.PI + seededRandom(seed+'ang'+i)*1.4;
+    const dist = 0.0018 + seededRandom(seed+'dist'+i)*0.0032;
+    const lat = site.lat + Math.cos(angle)*dist;
+    const lng = site.lng + Math.sin(angle)*dist;
+    const sizeRoll = seededRandom(seed+'size'+i);
+    const size = sizeRoll<0.34?'Compact':sizeRoll<0.7?'Standard':'Spacious';
+    const ceilingMod = size==='Compact'?-1:size==='Spacious'?1:0;
+    const costMod = size==='Compact'?-0.1:size==='Spacious'?0.18:0;
+    const nameRoll = Math.floor(seededRandom(seed+'name'+i)*PARK_NAME_PREFIXES.length);
+    parks.push({
+      id: site.id+'-park-'+i, name:`${town.name} ${PARK_NAME_PREFIXES[nameRoll]}`,
+      lat, lng, size, ceilingMod, costMod,
+      desc: size==='Compact' ? 'A tight plot right where you want it — cheaper, but the stadium footprint will always feel snug.'
+        : size==='Spacious' ? 'Plenty of room around this spot — pricier, but expansion later will be easy.'
+        : 'A balanced plot with sensible room to grow.'
+    });
+  }
+  return parks;
+}
+
+function renderParkLevel(){
+  const town = TOWN_DATA.find(t=>t.id===state.selectedTownId);
+  const site = (state.selectedSiteId==='custom' && state.customSite) ? state.customSite : sitesForTown(town).find(s=>s.id===state.selectedSiteId);
+  if(!state._parksCache || state._parksCache.siteId !== site.id){
+    state._parksCache = { siteId: site.id, parks: generateParksForSite(site, town) };
+  }
+  const parks = state._parksCache.parks;
+  const wrap = el(`<div>
+    <div class="hero" style="margin-bottom:14px;"><h1 style="font-size:26px;">Pick The Exact Park</h1>
+      <p>Within ${site.name}, choose the specific green space your stadium will rise on — this is exactly where the ground will sit.</p></div>
+    <div class="map-wrap">
+      <div class="map-col"><div id="leaflet-map" role="img" aria-label="Close-up satellite map for choosing the exact stadium plot"></div></div>
+      <div class="side-panel" id="park-list" role="list"></div>
+    </div>
+    <div style="text-align:right;margin-top:16px;"><button id="confirm-park" ${state.selectedParkId?'':'disabled'}>Confirm Location &amp; Continue →</button></div>
+  </div>`);
+  const list = $('#park-list', wrap);
+  parks.forEach(p=>{
+    const finalCost = Math.max(2000, Math.round(site.cost*(1+p.costMod)));
+    const finalCeiling = Math.max(1, Math.min(5, site.ceiling+p.ceilingMod));
+    const card = el(`<div class="site-card" data-park="${p.id}" role="listitem" tabindex="0">
+      <h4>${p.name}</h4><p class="muted" style="margin-top:6px;">${p.desc}</p>
+      <div class="tag-row"><span class="tag">${p.size}</span><span class="tag">Ceiling: ${STAND_TIERS[Math.min(STAND_TIERS.length-1,finalCeiling+2)].name}</span></div>
+      <div class="stat-line" style="margin-top:8px;"><span>Acquisition cost</span><b>£${finalCost.toLocaleString()}</b></div>
+    </div>`);
+    const go = ()=>{ state.selectedParkId=p.id; render(); };
+    card.onclick=go;
+    card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+    list.appendChild(card);
+  });
+  $all('.site-card', wrap).forEach(c=>c.classList.toggle('sel', c.getAttribute('data-park')===state.selectedParkId));
+
+  setTimeout(()=>{
+    $('#confirm-park', wrap)?.addEventListener('click', ()=>{
+      if(!state.selectedParkId) return;
+      const p = parks.find(x=>x.id===state.selectedParkId);
+      state.finalSite = {
+        ...site, name: site.name+' — '+p.name, lat:p.lat, lng:p.lng,
+        cost: Math.max(2000, Math.round(site.cost*(1+p.costMod))),
+        ceiling: Math.max(1,Math.min(5,site.ceiling+p.ceilingMod)),
+        parkName: p.name, parkSize: p.size
+      };
+      state.onboardStep=2; render();
+    });
+  },0);
+
+  setTimeout(()=>{
+    const map = initSatelliteMap('leaflet-map', [site.lat,site.lng], 16);
+    if(!map) return;
+    parks.forEach(p=>{
+      const marker = L.circleMarker([p.lat,p.lng],{radius:8,color:'var(--gold)',fillColor:'var(--gold)',fillOpacity:0.9,weight:2}).addTo(map);
+      marker.bindTooltip(p.name,{direction:'top'});
+      marker.on('click',()=>{ state.selectedParkId=p.id; render(); });
+    });
+  },0);
+  return wrap;
+}
+
+function computeCustomSite(town, lat, lng){
+  const distKm = haversine(town.lat, town.lng, lat, lng);
+  const jitter = 0.85 + seededRandom((lat+lng).toFixed(4)+'customcost') * 0.4;
+  const cost = Math.max(4000, Math.round((11000 + distKm*6500) * jitter * (1+town.pop/400000)));
+  const ceiling = distKm<1 ? 3 : distKm<3 ? 4 : distKm<6 ? 5 : 5;
+  const transport = distKm<1 ? 'Excellent — right in the town centre'
+    : distKm<3 ? 'Good — short drive from the centre'
+    : distKm<6 ? 'Fair — a bit out of town, may need investment'
+    : 'Limited — remote plot, new transport links will be needed';
+  return {
+    id:'custom',
+    name: town.name+' — Your Chosen Plot',
+    kind:'Custom site',
+    lat, lng, cost, ceiling, transport,
+    desc:`A site you hand-picked ${distKm.toFixed(1)}km from the town centre. Cost, ceiling and transport reflect exactly where you dropped the pin.`
+  };
+}
+
+/* ================= Dashboard ================= */
+
+function renderDashboard(){
+  const g = state.game;
+  const layout = el(`<div style="display:flex;flex-direction:column;flex:1;min-height:100vh;"></div>`);
+  const fixture = g.fixtures[g.week];
+  const oppName = fixture ? (findRival(fixture.oppId)?.name || g.league.find(c=>c.id===fixture.oppId)?.name) : null;
+
+  const masthead = el(`<div class="masthead">
+    <div class="masthead-left">
+      <div class="mh-crest" style="background:${g.club.primary};color:${g.club.secondary};border-color:${g.club.secondary}">${badgeSvgSmall(g.club)}</div>
+      <div><div class="mh-name">${g.club.name}</div><div class="mh-sub">${TIERS[g.club.tier]} · Season ${g.season}, Week ${g.week}/${g.seasonWeeks}${fixture?` · ${fixture.home?'(H)':'(A)'} ${oppName}`:''}</div></div>
+    </div>
+    <div class="masthead-stats">
+      <div class="mh-stat"><div class="lbl">Cash</div><div class="v">£${Math.round(g.club.cash).toLocaleString()}</div></div>
+      <div class="mh-stat"><div class="lbl">Reputation</div><div class="v">${Math.round(g.club.reputation)}</div></div>
+      <div class="mh-stat"><div class="lbl">Capacity</div><div class="v">${totalCapacity().toLocaleString()}</div></div>
+    </div>
+    ${musicToggleHtml()}
+    <button class="continue-btn" id="advance-btn">Continue ▸</button>
+  </div>`);
+  layout.appendChild(masthead);
+
+  const bodyRow = el(`<div class="layout"></div>`);
+  const rail = el(`<nav class="rail" aria-label="Club sections"></nav>`);
+  NAV_ITEMS.forEach(([key,label])=>{
+    const item = el(`<div class="rail-item ${state.dashTab===key?'active':''}" role="button" tabindex="0" aria-current="${state.dashTab===key?'page':'false'}">${svgIcon(NAV_ICONS[key])}<span>${label}</span></div>`);
+    const go = ()=>{ state.dashTab=key; render(); };
+    item.onclick=go;
+    item.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+    rail.appendChild(item);
+  });
+  bodyRow.appendChild(rail);
+
+  const main = el(`<main class="main"></main>`);
+  const content = el(`<div class="content" id="main-content"></div>`);
+  content.appendChild(renderTab(state.dashTab));
+  main.appendChild(content);
+  bodyRow.appendChild(main);
+  layout.appendChild(bodyRow);
+
+  if(g.pendingEvent){
+    layout.appendChild(renderEventModal());
+  }
+
+  setTimeout(()=>{
+    $('#advance-btn')?.addEventListener('click', tickWeek);
+    bindTabEvents(state.dashTab);
+    bindEventModal();
+    bindMusicToggle();
+  },0);
+
+  return layout;
+}
+
+function badgeSvgSmall(c){
+  const shapePath = BADGE_SHAPE_PATHS[c.badgeShape] || BADGE_SHAPE_PATHS.shield;
+  const iconPath = BADGE_ICONS[c.badgeIcon] || BADGE_ICONS.star;
+  return `<svg width="26" height="26" viewBox="0 0 64 64"><path d="${shapePath}" fill="none" stroke="${c.secondary}" stroke-width="4"/><g transform="translate(20,20) scale(0.9)"><path d="${iconPath}" fill="${c.secondary}"/></g></svg>`;
+}
+
+function renderEventModal(){
+  const g = state.game;
+  const ev = EVENTS.find(e=>e.id===g.pendingEvent);
+  const overlay = el(`<div class="modal-overlay"><div class="modal-box">
+    <div class="kicker">${ev.kicker}</div>
+    <h2>${ev.title}</h2>
+    <p>${ev.text(g)}</p>
+    <div class="modal-choices"></div>
+  </div></div>`);
+  const choicesEl = $('.modal-choices', overlay);
+  ev.choices.forEach((ch,i)=>{
+    const btn = el(`<button data-choice="${i}"><b>${ch.label}</b><span>${ch.desc}</span></button>`);
+    choicesEl.appendChild(btn);
+  });
+  return overlay;
+}
+function bindEventModal(){
+  $all('[data-choice]').forEach(btn=>btn.addEventListener('click', ()=>resolveEvent(Number(btn.getAttribute('data-choice')))));
+}
+
+function renderTab(tab){
+  if(tab==='overview') return renderOverview();
+  if(tab==='football') return renderFootball();
+  if(tab==='stadium') return renderStadium();
+  if(tab==='city') return renderCity();
+  if(tab==='academy') return renderAcademy();
+  if(tab==='finances') return renderFinances();
+  if(tab==='staff') return renderStaff();
+  if(tab==='rivals') return renderRivals();
+  if(tab==='social') return renderSocial();
+  if(tab==='chairman') return renderChairmanTab();
+  return el('<div></div>');
+}
+function bindTabEvents(tab){
+  if(tab==='stadium') bindStadiumEvents();
+  if(tab==='city') bindCityEvents();
+  if(tab==='academy') bindAcademyEvents();
+  if(tab==='staff') bindStaffEvents();
+  if(tab==='finances') bindFinanceEvents();
+  if(tab==='social') bindSocialEvents();
+}
+
+/* ---------------- Social media ---------------- */
+
+function socialHandle(){
+  const g = state.game;
+  return '@'+(g.club.shortName||g.club.name||'club').replace(/\s+/g,'').slice(0,15);
+}
+function suggestedSocialPosts(){
+  const g = state.game;
+  const list = [];
+  const form = g.club.form||[];
+  const last = form[form.length-1];
+  const tag = '#'+(g.club.shortName||g.club.nickname||g.club.name||'club').replace(/\s+/g,'');
+  if(last==='W') list.push(`WHAT A WIN! 🔵⚪ Three points on the board and the whole town buzzing tonight. ${tag}`);
+  else if(last==='L') list.push(`Tough result today — heads stay up. Back on the training ground this week, stronger for the next one. 💪`);
+  else if(last==='D') list.push(`A point earned the hard way today. Not quite what we wanted, but the fight was there till the whistle.`);
+  const fixture = g.fixtures[g.week];
+  if(fixture){
+    const oppName = (findRival(fixture.oppId)||{}).name || ((g.league||[]).find(c=>c.id===fixture.oppId)||{}).name || 'our next opponents';
+    list.push(`${fixture.home?'HOME':'AWAY'} this week vs ${oppName}. Who's with us? 🙌 #MatchDay`);
+  }
+  list.push(`Massive thank you to every fan who comes through the gates at ${g.club.stadiumName||'our ground'} — this club is nothing without you. ❤️`);
+  list.push(`Development work continues around the ground in ${g.town.name} — exciting times ahead for the club and the town. 🏗️`);
+  list.push(`Behind the scenes at training this week — the squad is putting the work in. ${tag}`);
+  return list.slice(0,4);
+}
+function publishSocialPost(text){
+  const g = state.game;
+  if(!text || !text.trim()) return;
+  const followers = state.socialFollowers;
+  const likes = Math.max(1, Math.round(followers*(0.03+Math.random()*0.14)));
+  const newFollowers = Math.max(0, Math.round(likes*0.12 + Math.random()*4));
+  state.socialFollowers += newFollowers;
+  const replyPool = [
+    "Can't wait for the weekend! 🔵", "This club means everything to this town.",
+    "Get the tickets on sale already!", "Someone tell the board we need a new striker 😅",
+    "Proper buzzing for this one.", "Been following since day one, love this.",
+    "Get in!!", "This is why we love this club."
+  ];
+  const reply = replyPool[Math.floor(Math.random()*replyPool.length)];
+  const replyAuthor = '@fan'+Math.floor(Math.random()*9999);
+  state.socialPosts.unshift({week:g.week, text:text.trim(), likes, replyAuthor, reply});
+  if(state.socialPosts.length>40) state.socialPosts.length=40;
+  g.club.reputation = Math.min(100, g.club.reputation + 0.3);
+  save();
+}
+function renderSocial(){
+  const g = state.game;
+  const wrap = el(`<div></div>`);
+  const avgLikes = state.socialPosts.length ? Math.round(state.socialPosts.reduce((s,p)=>s+p.likes,0)/state.socialPosts.length) : 0;
+  wrap.appendChild(el(`<div class="social-stat-row">
+      <div class="social-stat"><div class="v">${state.socialFollowers.toLocaleString()}</div><div class="lbl">Followers</div></div>
+      <div class="social-stat"><div class="v">${state.socialPosts.length}</div><div class="lbl">Posts</div></div>
+      <div class="social-stat"><div class="v">${avgLikes.toLocaleString()}</div><div class="lbl">Avg Likes</div></div>
+    </div>`));
+  const composeCard = el(`<div class="card"><h3>Post as ${socialHandle()}</h3>
+    <div class="social-suggest-row" id="suggest-row" role="list" aria-label="Suggested posts"></div>
+    <div class="social-compose">
+      <label class="visually-hidden" for="social-text">Compose a social media post</label>
+      <textarea id="social-text" placeholder="Share something with your supporters..."></textarea>
+      <button id="social-post-btn">Post</button>
+    </div>
+  </div>`);
+  const suggestRow = $('#suggest-row', composeCard);
+  suggestedSocialPosts().forEach(txt=>{
+    const btn = el(`<button type="button" data-suggest="${encodeURIComponent(txt)}" role="listitem">${txt.length>44?txt.slice(0,44)+'…':txt}</button>`);
+    suggestRow.appendChild(btn);
+  });
+  wrap.appendChild(composeCard);
+
+  const feedCard = el(`<div class="card"><h3>Your Feed</h3><div id="social-feed"></div></div>`);
+  const feed = $('#social-feed', feedCard);
+  if(!state.socialPosts.length){
+    feed.appendChild(el(`<p class="muted">Nothing posted yet — share your first update with the fans, or use a suggestion above.</p>`));
+  } else {
+    state.socialPosts.forEach(p=>{
+      feed.appendChild(el(`<div class="social-post">
+        <div class="meta"><span>${socialHandle()}</span><span>Week ${p.week}</span></div>
+        <div class="body">${p.text}</div>
+        <div class="engagement"><span>❤️ ${p.likes.toLocaleString()}</span><span>💬 1</span><span>🔁 ${Math.round(p.likes*0.1).toLocaleString()}</span></div>
+        <div class="social-reply"><b>${p.replyAuthor}</b> ${p.reply}</div>
+      </div>`));
+    });
+  }
+  wrap.appendChild(feedCard);
+  return wrap;
+}
+function bindSocialEvents(){
+  $all('[data-suggest]').forEach(btn=>btn.addEventListener('click', ()=>{
+    publishSocialPost(decodeURIComponent(btn.getAttribute('data-suggest')));
+    render();
+  }));
+  $('#social-post-btn')?.addEventListener('click', ()=>{
+    const ta = $('#social-text');
+    if(ta && ta.value.trim()){ publishSocialPost(ta.value); render(); }
+  });
+}
+
+function renderOverview(){
+  const g = state.game;
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`<div class="grid-3">
+    <div class="card"><h3>Club</h3>
+      <div class="finance-line"><span>Town</span><span>${g.town.name}</span></div>
+      <div class="finance-line"><span>Ground</span><span>${g.site.name}</span></div>
+      <div class="finance-line"><span>Division</span><span>${TIERS[g.club.tier]}</span></div>
+      <div class="finance-line"><span>Form</span><span>${(g.club.form||[]).join(' ')||'—'}</span></div>
+      <div class="finance-line"><span>Record</span><span>${g.club.wins||0}W ${g.club.draws||0}D ${g.club.losses||0}L</span></div>
+    </div>
+    <div class="card accent-gold"><h3>Town Pulse</h3>
+      <div class="finance-line"><span>Population</span><span>${Math.round(g.townStats.population).toLocaleString()}</span></div>
+      <div class="finance-line"><span>Happiness</span><span>${Math.round(g.townStats.happiness)}/100</span></div>
+      <div class="finance-line"><span>Traffic</span><span>${Math.round(g.townStats.traffic)}/100</span></div>
+    </div>
+    <div class="card"><h3>Finances</h3>
+      <div class="finance-line"><span>Cash</span><span>£${Math.round(g.club.cash).toLocaleString()}</span></div>
+      <div class="finance-line"><span>Debt</span><span>£${Math.round(g.club.debt).toLocaleString()}</span></div>
+      <div class="finance-line"><span>Weekly rent income</span><span>£${cityIncome().toLocaleString()}</span></div>
+    </div>
+  </div>`));
+  const newsCard = el(`<div class="card"><h3>Club News</h3></div>`);
+  g.news.slice(0,14).forEach(n=>{
+    newsCard.appendChild(el(`<div class="news-item ${n.event?'event':''}"><span class="wk">Wk${n.wk}</span>${n.text}</div>`));
+  });
+  wrap.appendChild(newsCard);
+  return wrap;
+}
+
+function renderFootball(){
+  const g = state.game;
+  const table = [{id:'player', name:g.club.name+' (You)', points:g.club.points, gf:g.club.gf, ga:g.club.ga, mp:g.club.matchesPlayed, form:g.club.form},
+    ...g.league.map(c=>({id:c.id,name:c.name,points:c.points||0,gf:c.gf||0,ga:c.ga||0,mp:c.matchesPlayed||0,form:c.form||[]}))]
+    .sort((a,b)=> b.points-a.points || (b.gf-b.ga)-(a.gf-a.ga));
+  const outer = el(`<div></div>`);
+  const wrap = el(`<div class="card"><h3>${TIERS[g.club.tier]} — League Table</h3></div>`);
+  const tbl = el(`<table><thead><tr><th>#</th><th>Club</th><th>P</th><th>GD</th><th>Pts</th><th>Form</th></tr></thead><tbody></tbody></table>`);
+  table.forEach((r,i)=>{
+    tbl.querySelector('tbody').appendChild(el(`<tr class="${r.id==='player'?'player-row':''}"><td>${i+1}</td><td>${r.name}</td><td>${r.mp}</td><td>${r.gf-r.ga}</td><td>${r.points}</td><td>${(r.form||[]).join(' ')}</td></tr>`));
+  });
+  wrap.appendChild(tbl);
+  outer.appendChild(wrap);
+
+  const fixCard = el(`<div class="card" style="margin-top:0;"><h3>Fixtures</h3></div>`);
+  const list = el(`<div></div>`);
+  Object.entries(g.fixtures).forEach(([wk,f])=>{
+    if(Number(wk) < g.week) return;
+    const opp = g.league.find(c=>c.id===f.oppId) || findRival(f.oppId);
+    const rival = findRival(f.oppId);
+    list.appendChild(el(`<div class="finance-line"><span>Wk ${wk} ${f.home?'(H)':'(A)'} ${opp?opp.name:'?'}</span><span>${rival && rival.rivalryScore>=55?'⚔ Local Derby':''}</span></div>`));
+  });
+  fixCard.appendChild(list);
+  outer.appendChild(fixCard);
+  return outer;
+}
+
+function renderStadium(){
+  const g = state.game;
+  const wrap = el(`<div></div>`);
+  const canvasCard = el(`<div class="card"><h3>${g.club.stadiumName||'Home Ground'} — Capacity ${totalCapacity().toLocaleString()}</h3></div>`);
+  const canvas = document.createElement('canvas');
+  canvas.width=640; canvas.height=320; canvas.style.width='100%'; canvas.style.maxWidth='640px';
+  canvasCard.appendChild(canvas);
+  wrap.appendChild(canvasCard);
+
+  const standCard = el(`<div class="card"><h3>Stands</h3><div class="stand-grid"></div></div>`);
+  const grid = $('.stand-grid', standCard);
+  ['north','south','east','west'].forEach(side=>{
+    const tierIdx = g.club.stands[side];
+    const tier = STAND_TIERS[tierIdx]; const next = STAND_TIERS[tierIdx+1];
+    const card = el(`<div class="stand-card"><h4>${side} Stand</h4><div class="tier">${tier.name} · ${tier.cap.toLocaleString()} seats</div>
+      ${next?`<button data-upgrade="${side}">Upgrade to ${next.name} (£${next.cost.toLocaleString()})</button>`:`<span class="muted">Fully developed</span>`}</div>`);
+    grid.appendChild(card);
+  });
+  wrap.appendChild(standCard);
+  wrap.appendChild(el(`<div class="card"><h3>Site</h3>
+    <div class="finance-line"><span>Ground</span><span>${g.site.name}</span></div>
+    <div class="finance-line"><span>Site type</span><span>${g.site.kind}</span></div>
+    <div class="finance-line"><span>Transport</span><span>${g.site.transport}</span></div>
+  </div>`));
+  setTimeout(()=>drawStadium(canvas),0);
+  return wrap;
+}
+function drawStadium(canvas){
+  const g = state.game, ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#0f1622'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const cx=canvas.width/2, cy=canvas.height/2, pitchW=260, pitchH=140;
+  const sideDefs=[{side:'north',dy:-1},{side:'south',dy:1},{side:'east',dx:1},{side:'west',dx:-1}];
+  sideDefs.forEach(sd=>{
+    const tierIdx=g.club.stands[sd.side]; const height=14+tierIdx*14;
+    ctx.fillStyle = tierIdx>=4?'#E8C158':(tierIdx>=2?'#3DA5D9':'#3a4558');
+    if(sd.dy!==undefined){ const w=pitchW+30, x=cx-w/2, y=sd.dy<0?cy-pitchH/2-height-6:cy+pitchH/2+6; ctx.fillRect(x,y,w,height); }
+    else { const h=pitchH+30, y=cy-h/2, x=sd.dx<0?cx-pitchW/2-height-6:cx+pitchW/2+6; ctx.fillRect(x,y,height,h); }
+  });
+  ctx.fillStyle='#2E7D46'; ctx.fillRect(cx-pitchW/2,cy-pitchH/2,pitchW,pitchH);
+  ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=2; ctx.strokeRect(cx-pitchW/2,cy-pitchH/2,pitchW,pitchH);
+  ctx.beginPath(); ctx.moveTo(cx,cy-pitchH/2); ctx.lineTo(cx,cy+pitchH/2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,26,0,Math.PI*2); ctx.stroke();
+}
+function bindStadiumEvents(){
+  $all('[data-upgrade]').forEach(btn=>btn.addEventListener('click', ()=>{
+    const side = btn.getAttribute('data-upgrade'), g = state.game, tierIdx = g.club.stands[side], next = STAND_TIERS[tierIdx+1];
+    if(!next) return;
+    if(g.club.cash<next.cost){ alert('Not enough cash for this upgrade.'); return; }
+    g.club.cash -= next.cost; g.club.stands[side]=tierIdx+1;
+    g.news.unshift({wk:g.week, text:`The ${side} stand is redeveloped into a ${next.name}, boosting capacity to ${totalCapacity().toLocaleString()}.`});
+    save(); render();
+  }));
+}
+
+function cityExpansionCost(){ return 30000 + (state.game.cityGridSize-7)*20000; }
+function cityExpansionCapReq(){ return 4000 + (state.game.cityGridSize-7)*4000; }
+function expandCity(){
+  const g = state.game;
+  const newSize = g.cityGridSize+2;
+  const grid = [];
+  for(let y=0;y<newSize;y++){ const row=[]; for(let x=0;x<newSize;x++) row.push('empty'); grid.push(row); }
+  const offset = Math.floor((newSize-g.cityGridSize)/2);
+  for(let y=0;y<g.cityGridSize;y++) for(let x=0;x<g.cityGridSize;x++){ grid[y+offset][x+offset]=g.cityGrid[y][x]; }
+  g.cityGrid = grid; g.cityGridSize = newSize;
+  g.news.unshift({wk:g.week, text:`With the stadium drawing bigger crowds, the council approves expanding the club's footprint in ${g.town.name} — more land is now available to develop around the ground.`});
+}
+
+function renderCity(){
+  const g = state.game;
+  const wrap = el(`<div class="card"><h3>${g.town.name} — Town Development</h3>
+    <p class="muted">Place tiles around the stadium (centre). Roads and transport reduce traffic; housing, shops and hospitality generate weekly rent income.</p></div>`);
+  const cap = totalCapacity();
+  const capReq = cityExpansionCapReq();
+  const expandCost = cityExpansionCost();
+  const canExpand = cap>=capReq;
+  wrap.appendChild(el(`<div class="card" style="border-left-color:var(--gold);">
+    <h3>District Size: ${g.cityGridSize}×${g.cityGridSize}</h3>
+    <p class="muted">As your stadium capacity grows, the council releases more surrounding land for development.</p>
+    ${canExpand
+      ? `<button id="expand-city">Expand District to ${g.cityGridSize+2}×${g.cityGridSize+2} (£${expandCost.toLocaleString()})</button>`
+      : `<p class="muted">Reach ${capReq.toLocaleString()} capacity to unlock the next expansion (currently ${cap.toLocaleString()}).</p>`}
+  </div>`));
+  const palette = el(`<div class="tile-palette"></div>`);
+  Object.entries(CITY_TILE_TYPES).forEach(([key,def])=>{
+    if(key==='empty') return;
+    const discount = g.club.cityDiscount||0;
+    const cost = Math.round(def.cost*(1-discount));
+    const btn = el(`<button class="tile-btn ${g.selectedCityTile===key?'sel':''}" data-tile="${key}"><span class="tile-swatch" style="background:${def.color}"></span>${def.label}<br><span class="muted">£${cost.toLocaleString()}</span></button>`);
+    palette.appendChild(btn);
+  });
+  palette.appendChild(el(`<button class="tile-btn ghost" data-tile="empty">Clear Tile</button>`));
+  wrap.appendChild(palette);
+  const canvas = document.createElement('canvas');
+  const cellPx=64; canvas.width=g.cityGridSize*cellPx; canvas.height=g.cityGridSize*cellPx*0.55+40; canvas.style.maxWidth='100%';
+  wrap.appendChild(canvas);
+  wrap.appendChild(el(`<div class="muted" style="margin-top:8px;">Weekly rent/property income: £${cityIncome().toLocaleString()} · Traffic ${Math.round(g.townStats.traffic)}/100 · Town happiness ${Math.round(g.townStats.happiness)}/100</div>`));
+  setTimeout(()=>drawCity(canvas,cellPx),0);
+  return wrap;
+}
+function isoProject(gx,gy,cellPx,originX,originY){ return [originX+(gx-gy)*cellPx/2, originY+(gx+gy)*cellPx/4]; }
+function drawCity(canvas,cellPx){
+  const g = state.game, ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const originX=canvas.width/2, originY=20, tileW=cellPx, tileH=cellPx/2;
+  for(let y=0;y<g.cityGridSize;y++) for(let x=0;x<g.cityGridSize;x++){
+    const [sx,sy]=isoProject(x,y,cellPx,originX,originY);
+    const type=g.cityGrid[y][x], isStadium=type==='stadium';
+    const def = isStadium?{color:'#E8C158'}:(CITY_TILE_TYPES[type]||CITY_TILE_TYPES.empty);
+    drawIsoTile(ctx,sx,sy,tileW,tileH,def.color);
+    if(isStadium){ ctx.fillStyle='#0A0D13'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center'; ctx.fillText('STADIUM',sx,sy+4); }
+  }
+}
+function drawIsoTile(ctx,cx,cy,w,h,color){
+  ctx.beginPath(); ctx.moveTo(cx,cy-h/2); ctx.lineTo(cx+w/2,cy); ctx.lineTo(cx,cy+h/2); ctx.lineTo(cx-w/2,cy); ctx.closePath();
+  ctx.fillStyle=color; ctx.fill(); ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=1; ctx.stroke();
+}
+function bindCityEvents(){
+  $('#expand-city')?.addEventListener('click', ()=>{
+    const g = state.game, cost = cityExpansionCost();
+    if(g.club.cash<cost){ alert('Not enough cash for this expansion.'); return; }
+    g.club.cash -= cost; expandCity(); save(); render();
+  });
+  $all('[data-tile]').forEach(btn=>btn.addEventListener('click', ()=>{ state.game.selectedCityTile=btn.getAttribute('data-tile'); render(); }));
+  const canvas = $('canvas', $('.content')); if(!canvas) return;
+  canvas.addEventListener('click',(e)=>{
+    const g = state.game, rect = canvas.getBoundingClientRect();
+    const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+    const mx=(e.clientX-rect.left)*scaleX, my=(e.clientY-rect.top)*scaleY;
+    const cellPx=canvas.width/g.cityGridSize, originX=canvas.width/2, originY=20;
+    let best=null, bestDist=Infinity;
+    for(let y=0;y<g.cityGridSize;y++) for(let x=0;x<g.cityGridSize;x++){
+      const [sx,sy]=isoProject(x,y,cellPx,originX,originY); const d=Math.hypot(sx-mx,sy-my);
+      if(d<bestDist){bestDist=d; best={x,y};}
+    }
+    if(!best || g.cityGrid[best.y][best.x]==='stadium') return;
+    const tileKey=g.selectedCityTile, def=CITY_TILE_TYPES[tileKey];
+    if(tileKey!=='empty'){
+      const cost = Math.round(def.cost*(1-(g.club.cityDiscount||0)));
+      if(g.club.cash<cost){ alert('Not enough cash for this development.'); return; }
+      g.club.cash -= cost;
+    }
+    g.cityGrid[best.y][best.x]=tileKey; save(); render();
+  });
+}
+
+function renderAcademy(){
+  const g = state.game;
+  return el(`<div class="card"><h3>Academy</h3>
+    <div class="finance-line"><span>Academy Quality</span><span>${Math.round(g.club.academyQuality)}/100</span></div>
+    <p class="muted" style="margin-top:8px;">Investing in the academy slowly raises player quality each season and produces homegrown talent, boosting reputation and reducing transfer spend over time.</p>
+    <button id="academy-upgrade" style="margin-top:10px;">Invest £${academyUpgradeCost().toLocaleString()} in Academy Facilities</button>
+    <button id="academy-housing" class="ghost" style="margin-top:10px;margin-left:10px;">Build Academy Housing (£15,000)</button>
+  </div>`);
+}
+function academyUpgradeCost(){ return Math.round(4000+state.game.club.academyQuality*250); }
+function bindAcademyEvents(){
+  $('#academy-upgrade')?.addEventListener('click', ()=>{
+    const g=state.game, cost=academyUpgradeCost();
+    if(g.club.cash<cost){ alert('Not enough cash.'); return; }
+    g.club.cash-=cost; g.club.academyQuality=Math.min(100,g.club.academyQuality+5); g.club.playerQuality=Math.min(100,g.club.playerQuality+0.5);
+    g.news.unshift({wk:g.week, text:'The academy facilities are upgraded — young players are developing faster.'}); save(); render();
+  });
+  $('#academy-housing')?.addEventListener('click', ()=>{
+    const g=state.game;
+    if(g.club.cash<15000){ alert('Not enough cash.'); return; }
+    g.club.cash-=15000; g.club.academyQuality=Math.min(100,g.club.academyQuality+3);
+    g.news.unshift({wk:g.week, text:'New academy housing helps attract young talent from further afield.'}); save(); render();
+  });
+}
+
+function renderFinances(){
+  const g = state.game; const wrap = el(`<div></div>`);
+  const summary = el(`<div class="card"><h3>Weekly Finance Report</h3></div>`);
+  const last = g.financeLog[g.financeLog.length-1];
+  if(last){
+    [['Sponsorship',last.sponsorship,1],['Merchandise',last.merch,1],['Property/rent income',last.propertyIncome,1],
+     ['Wages',last.wages,-1],['Stadium maintenance',last.maintenance,-1],['Debt interest',last.debtInterest,-1]].forEach(([lbl,val,sign])=>{
+      summary.appendChild(el(`<div class="finance-line"><span>${lbl}</span><span>${sign<0?'-':''}£${val.toLocaleString()}</span></div>`));
+    });
+    summary.appendChild(el(`<div class="finance-line total"><span>Net (excl. matchday gate)</span><span>${last.net>=0?'+':''}£${last.net.toLocaleString()}</span></div>`));
+  } else summary.appendChild(el(`<p class="muted">No finance history yet — press Continue to generate your first report.</p>`));
+  wrap.appendChild(summary);
+  wrap.appendChild(el(`<div class="card"><h3>Ticket Pricing</h3>
+    <div class="field" style="max-width:220px;"><label>Adult Matchday Price: <b style="color:var(--accent-light)">£${g.club.ticketPrice}</b></label>
+    <input type="range" id="ticket-slider" min="4" max="60" value="${g.club.ticketPrice}"></div>
+    <p class="muted">Higher prices raise revenue per fan but reduce attendance demand.</p></div>`));
+  const historyCard = el(`<div class="card"><h3>Recent Weeks</h3></div>`);
+  const t2 = el(`<table><thead><tr><th>Wk</th><th>Income</th><th>Expenses</th><th>Net</th></tr></thead><tbody></tbody></table>`);
+  [...g.financeLog].reverse().forEach(r=>{
+    t2.querySelector('tbody').appendChild(el(`<tr><td>${r.week}</td><td>£${r.income.toLocaleString()}</td><td>£${r.expenses.toLocaleString()}</td><td>${r.net>=0?'+':''}£${r.net.toLocaleString()}</td></tr>`));
+  });
+  historyCard.appendChild(t2); wrap.appendChild(historyCard);
+  return wrap;
+}
+function bindFinanceEvents(){ $('#ticket-slider')?.addEventListener('input', e=>{ state.game.club.ticketPrice=Number(e.target.value); render(); }); }
+
+function renderStaff(){
+  const g = state.game;
+  return el(`<div class="card"><h3>Staff</h3>
+    <div class="finance-line"><span>Staff Quality</span><span>${Math.round(g.club.staffQuality)}/100</span></div>
+    <p class="muted" style="margin-top:8px;">Better managers and backroom staff improve tactical strength and match performance.</p>
+    <button id="staff-upgrade" style="margin-top:10px;">Hire Better Staff (£${staffUpgradeCost().toLocaleString()})</button>
+  </div>`);
+}
+function staffUpgradeCost(){ return Math.round(3500+state.game.club.staffQuality*220); }
+function bindStaffEvents(){
+  $('#staff-upgrade')?.addEventListener('click', ()=>{
+    const g=state.game, cost=staffUpgradeCost();
+    if(g.club.cash<cost){ alert('Not enough cash.'); return; }
+    g.club.cash-=cost; g.club.staffQuality=Math.min(100,g.club.staffQuality+5);
+    g.news.unshift({wk:g.week, text:'The club strengthens its coaching staff.'}); save(); render();
+  });
+}
+
+function renderRivals(){
+  const g = state.game;
+  const wrap = el(`<div class="card"><h3>Local Rivals</h3><p class="muted">Rivalry grows through proximity, shared history and meetings on the pitch.</p></div>`);
+  [...g.allRivals].sort((a,b)=>b.rivalryScore-a.rivalryScore).forEach(r=>{
+    wrap.appendChild(el(`<div class="rival-card">
+      <div class="flex-between"><b>${r.name}</b><span class="muted">${TIERS[r.tier]}</span></div>
+      <div class="muted">${r.distance<9999?r.distance+' km away':''} · met ${r.matchesPlayed} time(s)</div>
+      <div class="rival-meter"><div class="fill" style="width:${r.rivalryScore}%"></div></div>
+    </div>`));
+  });
+  return wrap;
+}
+
+function renderChairmanTab(){
+  const g = state.game, ch = g.chairman;
+  const bg = CHAIR_BACKGROUNDS.find(b=>b.id===ch.background);
+  const wrap = el(`<div></div>`);
+  const top = el(`<div class="card"><h3>Chairman Profile</h3><div class="chair-avatar-wrap"></div></div>`);
+  const avWrap = $('.chair-avatar-wrap', top);
+  avWrap.appendChild(el(avatarSvg(ch,110)));
+  const info = el(`<div style="flex:1;">
+    <div class="stat-line"><span>Name</span><b>${ch.name||'—'}</b></div>
+    <div class="stat-line"><span>Age</span><b>${ch.age}</b></div>
+    <div class="stat-line"><span>Background</span><b>${bg?bg.label:'—'}</b></div>
+    ${ch.quote?`<p class="muted" style="margin-top:8px;font-style:italic;">"${ch.quote}"</p>`:''}
+  </div>`);
+  avWrap.appendChild(info);
+  wrap.appendChild(top);
+  const traits = el(`<div class="card"><h3>Traits</h3></div>`);
+  [['Ambition',ch.ambition],['Patience',ch.patience],['Risk Tolerance',ch.riskTolerance],['Fan Focus',ch.fanFocus],['Financial Prudence',ch.financialPrudence]].forEach(([lbl,val])=>{
+    traits.appendChild(el(`<div class="trait-bar"><div class="lbl2"><span>${lbl}</span><span>${val}</span></div><div class="trait-track"><div class="fill" style="width:${val}%"></div></div></div>`));
+  });
+  wrap.appendChild(traits);
+  return wrap;
+}
+
+/* ---------------- Boot ---------------- */
+window.addEventListener('error', function(e){
+  console.error('Chairman & City error:', e.error || e.message);
+  const app=document.getElementById('app');
+  if(app && !app.children.length){
+    app.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;background:#0A0D13;color:#EDEFF4;font-family:Segoe UI,Arial"><div style="max-width:760px;background:#121826;border:1px solid #3a4558;border-radius:16px;padding:28px"><h1 style="margin:0 0 10px;color:#FF7A29">Chairman & City could not start</h1><p style="color:#8C94A6">A browser error stopped the game from loading.</p><pre style="white-space:pre-wrap;color:#EDEFF4;background:#0A0D13;padding:14px;border-radius:8px">'+String(e.message||e.error||'Unknown error')+'</pre><button onclick="location.reload()" style="padding:12px 18px">Reload Game</button></div></div>';
+  }
+});
+
+// Use browser localStorage for standalone HTML files. This avoids relying on
+// platform-specific storage APIs that do not exist when the file is opened directly.
+function save(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e) { console.warn('Save unavailable:', e); }
+}
+function loadSaveSync(){
+  try {
+    const value=localStorage.getItem(STORAGE_KEY);
+    if(!value) return false;
+    const parsed=JSON.parse(value);
+    if(parsed && typeof parsed==='object' && parsed.club && parsed.chairman){ state=parsed; return true; }
+  } catch(e) {
+    try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
+  }
+  return false;
+}
+function resetGame(){
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  state=freshState();
+  render();
+}
+
+try {
+  if(!loadSaveSync()) state=freshState();
+  state.musicOn = false; // never auto-resume audio without a fresh user gesture
+  render();
+} catch(err) {
+  console.error('Chairman & City startup error:', err);
+  const app=document.getElementById('app');
+  if(app) app.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;background:#0A0D13;color:#EDEFF4;font-family:Segoe UI,Arial"><div style="max-width:760px;background:#121826;border:1px solid #3a4558;border-radius:16px;padding:28px"><h1 style="margin:0 0 10px;color:#FF7A29">Chairman & City could not start</h1><p style="color:#8C94A6">The game hit an error while creating the first screen.</p><pre style="white-space:pre-wrap;color:#EDEFF4;background:#0A0D13;padding:14px;border-radius:8px">'+String(err.stack||err)+'</pre><button onclick="location.reload()" style="padding:12px 18px">Reload Game</button></div></div>';
+  }
+</script>
+</body>
+</html>
